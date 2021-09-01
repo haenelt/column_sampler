@@ -11,16 +11,8 @@
     - transform coordinates to volume
     - save in array
     - output as overlay for visualization purposes
+    - make nifti for nice visualization
 - analyze
     - line plot
     - fit with gaussian
     - get parameter estimates
-
-add files
-===
-- setup.py
-- requirements.txt
-
-finalize
-===
-- README.md
