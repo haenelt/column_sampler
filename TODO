@@ -1,0 +1,26 @@
+- manual selection of vertices
+    - only use voxels which have same directionality (sign) across scans
+    - then choose the best ones
+- make lines
+    - load line labels
+    - get coordinates orthogonal to line
+    - shift according to contrast
+    - get coordinates across cortical depth
+    - make mesh from pointcloud
+- sample data
+    - transform coordinates to volume
+    - save in array
+    - output as overlay for visualization purposes
+- analyze
+    - line plot
+    - fit with gaussian
+    - get parameter estimates
+
+add files
+===
+- setup.py
+- requirements.txt
+
+finalize
+===
+- README.md
