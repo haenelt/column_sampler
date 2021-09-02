@@ -14,7 +14,6 @@ import nibabel as nb
 from nibabel.freesurfer.io import read_geometry
 from gbb.normal.get_normal import get_normal
 from lib_column.io.LoadData import LoadData
-from lib_column.utils.get_border import get_border
 
 participant = "p3"
 line_in = "/data/pt_01880/Experiment1_ODC/p3/analysis/line_coordinates/rh_line_coordinates.npz"
@@ -53,7 +52,7 @@ mesh = data.get_mesh()
 rim = data.get_rim()
 normal = get_normal(mesh["vtx"], mesh["fac"])
 
-# get border
+# get border: do not use this function: get other layers from meshlines
 if csf_mesh_in:
     vtx_csf, _ = read_geometry(csf_mesh_in)
 else:
