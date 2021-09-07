@@ -1,13 +1,10 @@
 """
 Make line coordinates
 
-This script computes the lines perpendicular to the manually defined path along a cortical column.
-Reference data is used to shift every single line to have the column peak at its center coordinate.
-Line coordinates and geometry files are saved.
-
-created by Daniel Haenelt
-Date created: 06-03-2020             
-Last modified: 05-10-2020  
+This script computes the lines perpendicular to the manually defined path along
+a cortical column. Reference data is used to shift every single line to have the
+column peak at its center coordinate. Line coordinates and geometry files are
+saved.
 """
 import os
 import numpy as np
@@ -54,8 +51,8 @@ ref_array = nb.load(file_ref).get_fdata()
 adjm = get_adjm(mesh["vtx"], mesh["fac"])
 
 # get perpendicular lines
-line = get_perpendicular_line(file_path, mesh["vtx"], mesh["fac"], adjm, line_length, line_step, 
-                              nn_smooth, ndir_smooth)
+line = get_perpendicular_line(file_path, mesh["vtx"], mesh["fac"], adjm,
+                              line_length, line_step, nn_smooth, ndir_smooth)
 
 # get and apply line shift
 for i in range(len(line)):    
@@ -77,7 +74,8 @@ for i in range(len(line)):
 
 # save corrected lines
 suffix = "_"+name_output if name_output else ""
-np.savez(os.path.join(path_output, hemi+"_line_coordinates"+suffix), x=x, line=line)
+np.savez(os.path.join(path_output, hemi+"_line_coordinates"+suffix), x=x,
+         line=line)
         
 # save line geometry
 for i in range(len(line)):
