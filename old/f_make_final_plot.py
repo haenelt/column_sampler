@@ -1,11 +1,5 @@
 """
-Make final plot
-
 This script plots column height across layers for direct sequence comparison.
-
-created by Daniel Haenelt
-Date created: 01-07-2020             
-Last modified: 11-10-2020  
 """
 import os
 import numpy as np

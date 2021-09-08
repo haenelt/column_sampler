@@ -3,8 +3,10 @@
 
 import functools
 import numpy as np
+import nibabel as nb
 import networkx as nx
 from column_filter import mesh
+from nibabel.affines import apply_affine
 from networkx.algorithms.shortest_paths.generic import shortest_path
 
 __all__ = ["Mesh"]
@@ -22,6 +24,19 @@ class Mesh(mesh.Mesh):
             yield a, b, self.euclidean_distance(self.vtx[a], self.vtx[b])
             yield b, c, self.euclidean_distance(self.vtx[b], self.vtx[c])
             yield a, c, self.euclidean_distance(self.vtx[a], self.vtx[c])
+
+    def ras2vox(self, vol_in):
+        """
+        https://neurostars.org/t/get-voxel-to-ras-transformation-from-nifti-file/4549
+        """
+
+        nii = nb.load(vol_in)
+        mgh = nb.MGHImage(nii.dataobj, nii.affine)
+
+        vox2ras_tkr = mgh.header.get_vox2ras_tkr()
+        ras2vox_tkr = np.linalg.inv(vox2ras_tkr)
+
+        return apply_affine(ras2vox_tkr, self.vtx)  # vox2ras_tkr
 
     def path_dijkstra(self, ind):
         """

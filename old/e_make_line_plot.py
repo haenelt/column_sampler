@@ -1,11 +1,5 @@
 """
-Make line plot
-
 This script plots the averaged sampled data at different cortical depths.
-
-created by Daniel Haenelt
-Date created: 06-03-2020
-Last modified: 11-10-2020
 """
 import os
 import numpy as np

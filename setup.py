@@ -5,6 +5,8 @@ import setuptools
 
 INSTALL_REQUIREMENTS = ['numpy==1.20.3',
                         'nibabel==3.2.1',
+                        'networkx==2.5',
+                        'scipy==1.5.2',
                         ]
 
 CLASSIFIERS = ["Programming Language :: Python :: 3.8",

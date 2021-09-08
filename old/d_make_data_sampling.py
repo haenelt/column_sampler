@@ -1,11 +1,5 @@
 """
-Make data sampling
-
 This script takes the column array and samples contrast data for each coordinate.
-
-created by Daniel Haenelt
-Date created: 27-06-2020             
-Last modified: 29-06-2020  
 """
 import os
 import numpy as np

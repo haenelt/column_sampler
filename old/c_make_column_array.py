@@ -1,12 +1,6 @@
 """
-Make column array
-
 This script sorts all lines and computes corresponding cortical depth dependent coordinates. The
 array has the dimensions line x coordinates x layer.
-
-created by Daniel Haenelt
-Date created: 27-06-2020             
-Last modified: 05-10-2020  
 """
 import os
 import numpy as np
