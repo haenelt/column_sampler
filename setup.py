@@ -7,6 +7,8 @@ INSTALL_REQUIREMENTS = ['numpy==1.20.3',
                         'nibabel==3.2.1',
                         'networkx==2.5',
                         'scipy==1.5.2',
+                        'matplotlib==3.4.2',
+                        'pyvista==0.31.3',
                         ]
 
 CLASSIFIERS = ["Programming Language :: Python :: 3.8",
