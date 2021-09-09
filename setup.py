@@ -3,14 +3,18 @@
 import setuptools
 
 
-INSTALL_REQUIREMENTS = ['numpy==1.20.3',
+INSTALL_REQUIREMENTS = ['numpy==1.19.1',
                         'nibabel==3.2.1',
                         'networkx==2.5',
                         'scipy==1.5.2',
-                        'matplotlib==3.4.2',
+                        'matplotlib==3.4.3',
                         'pyvista==0.31.3',
-                        'column_filter @ git+ssh://git@github.com/haenelt/column_filter.git',
+                        'six==1.16.0',
+                        'column_filter',
                         ]
+
+DEPENDENCY_LINKS = ['git+https://github.com/haenelt/column_filter.git#egg=column_filter',
+                    ]
 
 CLASSIFIERS = ["Programming Language :: Python :: 3.8",
                "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
@@ -38,6 +42,7 @@ setuptools.setup(
     license='GPL v3',
     packages=setuptools.find_packages(),
     install_requires=INSTALL_REQUIREMENTS,
+    dependency_links=DEPENDENCY_LINKS,
     classifiers=CLASSIFIERS,
     python_requires='>=3.8',
     include_package_data=True,
