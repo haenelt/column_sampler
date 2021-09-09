@@ -128,7 +128,10 @@ class ColumnMesh(Mesh):
 
 
 
-
+"""
+self.vtx = [vtx_smooth[j] - np.dot(np.outer(v, v), vtx_diff[j])
+                        for j, v in enumerate(n)]
+"""
 
 
 
@@ -164,7 +167,6 @@ import pyvista as pv
 from nibabel.freesurfer.io import write_geometry
 cloud = pv.PolyData(yyy)
 surf = cloud.delaunay_2d(alpha=0.5)
-#surf.plot(show_edges=True)
 
 faces = np.reshape(surf.faces, (int(len(surf.faces)/4),4))
 faces = faces[:,1:]

@@ -4,3 +4,4 @@ networkx==2.5
 scipy==1.5.2
 matplotlib==3.4.2
 pyvista==0.31.3
+git+git://github.com/haenelt/column_filter@main#egg=column_filter

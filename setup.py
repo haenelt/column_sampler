@@ -9,6 +9,7 @@ INSTALL_REQUIREMENTS = ['numpy==1.20.3',
                         'scipy==1.5.2',
                         'matplotlib==3.4.2',
                         'pyvista==0.31.3',
+                        'column_filter @ git+ssh://git@github.com/haenelt/column_filter.git',
                         ]
 
 CLASSIFIERS = ["Programming Language :: Python :: 3.8",
