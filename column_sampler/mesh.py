@@ -66,6 +66,7 @@ class ColumnMesh(Mesh):
     def __init__(self, vtx, fac, ind):
         super().__init__(vtx, fac)
         self.ind = ind
+        self.line_temp = []
 
     def perpendicular_line(self, line_length=1, line_step=0.1, ndir_smooth=5):
 
@@ -79,31 +80,37 @@ class ColumnMesh(Mesh):
         x = np.arange(-line_length, line_length + line_step, line_step)
 
         # initialize list
-        line_temp = []
+        self.line_temp = []
+
+        def _mean(pts):
+            return np.mean(pts, axis=0)
 
         # get perpendicular line for each line vertex
         # for j in range(ndir_smooth,len(line)-ndir_smooth):
-        for j in range(2, len(self.ind) - 2):
+        ind_len = len(self.ind)
+        for j in range(2, ind_len - 2):
 
             # get local neighborhood
             nn = self.neighborhood(self.ind[j])
+            p0 = self.vtx[self.ind[j], :]
+            p = self.vtx[self.ind] - p0
+
+            j_next = j + ndir_smooth
+            j_prev = j - ndir_smooth
 
             # For a stable normal line computation, neighbor points in
             # ndir_smooth distance are selected. This prevents the use of points
             # at both line endings. For those cases, the neighbor distance is
             # shortened.
             if j < ndir_smooth:
-                p01 = np.mean(self.vtx[self.ind[j + 1:j + ndir_smooth], :],
-                              axis=0) - self.vtx[self.ind[j], :]
-                p02 = np.mean(self.vtx[self.ind[0:j - 1], :], axis=0) - self.vtx[self.ind[j], :]
-            elif j > len(self.ind) - ndir_smooth:
-                p01 = np.mean(self.vtx[self.ind[j + 1:len(self.ind)], :], axis=0) - self.vtx[self.ind[j],:]
-                p02 = np.mean(self.vtx[self.ind[j - ndir_smooth:j - 1], :], axis=0) - self.vtx[self.ind[j], :]
+                p01 = _mean(p[j + 1:j_next, :])
+                p02 = _mean(p[0:j - 1, :])
+            elif j > ind_len - ndir_smooth:
+                p01 = _mean(p[j + 1:ind_len, :])
+                p02 = _mean(p[j_prev:j - 1, :])
             else:
-                p01 = np.mean(self.vtx[self.ind[j + 1:j + ndir_smooth], :],
-                              axis=0) - self.vtx[self.ind[j], :]
-                p02 = np.mean(self.vtx[self.ind[j - ndir_smooth:j - 1], :],
-                              axis=0) - self.vtx[self.ind[j], :]
+                p01 = _mean(p[j + 1:j_next, :])
+                p02 = _mean(p[j_prev:j - 1, :])
 
             # get smoothed surface normal
             p1 = np.mean(normal[nn], axis=0)
@@ -114,24 +121,97 @@ class ColumnMesh(Mesh):
             p2 = (p21 + p22) / 2
 
             # add current line vertex point
-            p0 = self.vtx[self.ind[j], :]
-            p2 += self.vtx[self.ind[j], :]
+            p2 += p0
 
             # get coordinates of perpendicular line
             yy = y(x, p0, p2)
 
+            yy = self.remesh(yy)
+
             # append to list
-            line_temp.append(yy)
+            self.line_temp.append(yy)
 
-        return line_temp
+        return self.line_temp
 
+    def closest_point(self, pt):
 
+        vtx_tmp = self.vtx - pt
+        dist = np.sqrt(vtx_tmp[:, 0]**2+vtx_tmp[:, 1]**2+vtx_tmp[:, 2]**2)
+        ind = np.where(dist == np.min(dist))[0][0]
 
+        return ind
 
-"""
-self.vtx = [vtx_smooth[j] - np.dot(np.outer(v, v), vtx_diff[j])
-                        for j, v in enumerate(n)]
-"""
+    def remesh(self, pts):
+        res = []
+        for bla in pts:
+            ind_here = self.closest_point(bla)
+            n = self.vertex_normals[ind_here, :]
+
+            # get closest vertex
+            # get normal
+            # for each y -> remesh with formula
+
+            res.append(bla-np.dot(np.outer(n, n), bla-self.vtx[ind_here,:]))
+
+        return res
+
+    def update_coordinates(self, axis=0):
+
+        # pts -> lines x pts x coords
+        pts = self.line_temp.copy()
+        counter = 0
+        while counter < 100000:
+            counter += 1
+            print(counter)
+
+            # random line point
+            if axis == 0:
+                x_random = np.random.randint(1, np.shape(pts)[0]-1)
+                y_random = np.random.randint(np.shape(pts)[1])
+
+                p = pts[x_random][y_random]
+                p_prev = pts[x_random-1][y_random]
+                p_next = pts[x_random+1][y_random]
+            elif axis == 1:
+                x_random = np.random.randint(np.shape(pts)[0])
+                y_random = np.random.randint(1, np.shape(pts)[1]-1)
+
+                p = pts[x_random][y_random]
+                p_prev = pts[x_random][y_random-1]
+                p_next = pts[x_random][y_random+1]
+            else:
+                raise ValueError("Invalid argument for axis!")
+
+            dist_prev = self.euclidean_distance(p, p_prev)
+            dist_next = self.euclidean_distance(p, p_next)
+            if dist_next / dist_prev > 0.1:
+
+                # new line point coordinates is the mean of neighboring
+                # coordinates
+                pts[x_random][y_random][0] = (p_prev[0] + p_next[0]) / 2
+                pts[x_random][y_random][1] = (p_prev[1] + p_next[1]) / 2
+                pts[x_random][y_random][2] = (p_prev[2] + p_next[2]) / 2
+
+            # remesh all line coordinates
+            if not np.mod(counter, 10000):
+                print("hallo")
+                for i, line in enumerate(pts):
+                    pts[i] = self.remesh(line)
+
+        self.line_temp = pts.copy()
+
+        return pts
+
+    def check_homogeneity(self, axis=0):
+        pass
+
+        # ausschlussbedingung
+        # remeshing am schluss
+        # make several times
+        # flatten final vertex array
+        # save mesh (pyvista)
+        # get rid of Mesh
+        # with and without remeshing
 
 
 
@@ -152,13 +232,16 @@ self.vtx = [vtx_smooth[j] - np.dot(np.outer(v, v), vtx_diff[j])
 
 from nibabel.freesurfer.io import read_geometry
 surf_in = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_5"
-ind = [159488, 30645, 171581]
+#ind = [159488, 30645, 171581]
+ind = [40659, 189512, 181972]
 vtx, fac = read_geometry(surf_in)
 A = Mesh(vtx, fac)
 res = A.path_dijkstra(ind)
 
 B = ColumnMesh(vtx, fac, res)
 xxx = B.perpendicular_line()
+xxx = B.update_coordinates(axis=0)
+xxx = B.update_coordinates(axis=1)
 
 array_dims = np.shape(xxx)
 yyy = np.reshape(xxx, (np.shape(xxx)[0]*np.shape(xxx)[1],3))
@@ -169,6 +252,6 @@ cloud = pv.PolyData(yyy)
 surf = cloud.delaunay_2d(alpha=0.5)
 
 faces = np.reshape(surf.faces, (int(len(surf.faces)/4),4))
-faces = faces[:,1:]
+faces = faces[:, 1:]
 
-write_geometry("/home/daniel/Schreibtisch/bb2", yyy, faces)
+write_geometry("/home/daniel/Schreibtisch/bb1", yyy, faces)
