@@ -12,16 +12,16 @@ from networkx.algorithms.shortest_paths.generic import shortest_path
 import pyvista as pv
 from nibabel.freesurfer.io import write_geometry
 
-__all__ = ["LineMesh", "ColumnMesh"]
+__all__ = ["PlanarMesh", "CurvedMesh"]
 
 
-class LineMesh(mesh.Mesh):
+class PlanarMesh(mesh.Mesh):
     def __init__(self, vtx, fac, ind):
         super().__init__(vtx, fac)
         self.ind = ind
 
 
-class ColumnMesh(mesh.Mesh):
+class CurvedMesh(mesh.Mesh):
     def __init__(self, vtx, fac, ind):
         super().__init__(vtx, fac)
         self.ind = self.path_dijkstra(ind)
@@ -281,7 +281,7 @@ surf_in = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_5"
 surf_out = "/home/daniel/Schreibtisch/bb100"
 ind = [40659, 189512, 181972]
 vtx, fac = read_geometry(surf_in)
-A = ColumnMesh(vtx, fac, ind)
+A = CurvedMesh(vtx, fac, ind)
 
 xxx = A.perpendicular_line()
 #xxx = A.update_coordinates(axis=0)
