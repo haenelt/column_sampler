@@ -8,10 +8,6 @@ def get_width(x, y, invert_peak=False):
     Outputs:
         *hwhm_left: left column size from peak center.
         *hwhm_right: right column size from peak center.
-
-    created by Daniel Haenelt
-    Date created: 01-07-2020
-    Last modified: 01-07-2020
     """
     import numpy as np
 

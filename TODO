@@ -1,12 +1,15 @@
+- important:
+    - fixate middle point
+    - regularize line
+
 - manual selection of vertices
     - only use voxels which have same directionality (sign) across scans
     - then choose the best ones
 - make lines
     - load line labels
     - get coordinates orthogonal to line
-    - shift according to contrast
+    - shift according to contrast (get shift, apply shift, plot for sanity check)
     - get coordinates across cortical depth
-    - make mesh from pointcloud
 - sample data
     - transform coordinates to volume
     - save in array

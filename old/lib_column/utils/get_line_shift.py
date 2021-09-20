@@ -6,10 +6,6 @@ def get_line_shift(data):
         *data: 1D array of sampled data.
     Outputs:
         *data_shift: shift of data peak relative to line center.
-        
-    created by Daniel Haenelt
-    Date created: 05-03-2020
-    Last modified: 09-03-2020
     """
     import numpy as np
     from scipy.signal import find_peaks

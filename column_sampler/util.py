@@ -1,5 +1,6 @@
 import numpy as np
 import nibabel as nb
+from nibabel.affines import apply_affine
 
 
 def make_template(arr, threshold=1.7):
@@ -90,7 +91,21 @@ def _careful_divide(v, v0, v1):
     return (v - v0) / (v1 - v0) if v1 != v0 else v
 
 
-def sample_line(vtx, arr, deform_in=None):
+def ras2vox(vtx, vol_in):
+    """
+    https://neurostars.org/t/get-voxel-to-ras-transformation-from-nifti-file/4549
+    """
+
+    nii = nb.load(vol_in)
+    mgh = nb.MGHImage(nii.dataobj, nii.affine)
+
+    vox2ras_tkr = mgh.header.get_vox2ras_tkr()
+    ras2vox_tkr = np.linalg.inv(vox2ras_tkr)
+
+    return apply_affine(ras2vox_tkr, vtx)  # vox2ras_tkr
+
+
+def sample_line(vtx, vol_in, deform_in):
     """
     This function samples data onto the given coordinate array using linear interpolation.
     Inputs:
@@ -102,12 +117,14 @@ def sample_line(vtx, arr, deform_in=None):
 
     """
 
+    vtx = ras2vox(vtx, vol_in)
+    arr = nb.load(vol_in).get_fdata()
     vtx_new = np.zeros_like(vtx)
-    if deform_in:
+    if deform_in is not None:
         arr_cmap = nb.load(deform_in).get_fdata()
         for i in range(3):
             vtx_new[:,i] = linear_interpolation3d(vtx[:,0], vtx[:,1], vtx[:,2],
-                                              arr_cmap[:,:,:,i])
+                                                  arr_cmap[:,:,:,i])
         vtx = vtx_new.copy()
 
     # sample data

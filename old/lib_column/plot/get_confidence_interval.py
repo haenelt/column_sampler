@@ -5,10 +5,6 @@ def get_confidence_interval(se, n, c=0.95):
         *c: confidence threshold.
         *n: length of data array.
         *se: standard error of the mean.
-
-    created by Daniel Haenelt
-    Date created: 09-03-2020
-    Last modified: 09-03-2020
     """
     from scipy.stats import t
     
