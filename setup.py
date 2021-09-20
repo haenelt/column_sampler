@@ -8,7 +8,6 @@ INSTALL_REQUIREMENTS = ['numpy==1.19.1',
                         'networkx==2.5',
                         'scipy==1.5.2',
                         'matplotlib==3.4.2',
-                        'pyvista==0.31.3',
                         'six==1.16.0',
                         'column_filter',
                         ]

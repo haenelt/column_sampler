@@ -17,4 +17,4 @@
 - analyze
     - line plot
     - fit with gaussian
-    - get parameter estimates
+    - get parameter estimates (height, width, slope, etc.)
