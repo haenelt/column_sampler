@@ -17,6 +17,34 @@ __all__ = ["PlanarMesh", "CurvedMesh"]
 
 
 class PlanarMesh(mesh.Mesh):
+    """Mesh with planar shape.
+
+    Bla...
+
+    Parameters
+    ----------
+    vtx : (N,3) np.ndarray
+        Base directory of subject folders.
+    fac : (M,3) np.ndarray
+        sdf.
+    idx : (O) list
+        sdf.
+
+    Attributes
+    ----------
+    LINE_LENGTH : int
+        bla.
+
+    Raises
+    ------
+    FileNotFoundError :
+        If `dir_base` is not found or if not all subfolders in the subject
+        folder are found.
+    ValueError :
+        If `sub` deviates from the names on my google drive.
+
+    """
+
     LINE_LENGTH = 2
     LINE_STEP = 0.1
     NSMOOTH = 5
@@ -102,9 +130,9 @@ class PlanarMesh(mesh.Mesh):
             shift = self._get_shift(bla)
             xc = int(len(self.x) / 2)  # old center coordinate
             xc = xc + shift  # new center coordinate
-            self.line_coordinates[i] = self._line_equation(self.x,
-                                                           self.line_coordinates[i][xc, :],
-                                                           self.line_coordinates[i][xc + 1, :])
+            pt1 = self.line_coordinates[i][xc, :]
+            pt2 = self.line_coordinates[i][xc + 1, :]
+            self.line_coordinates[i] = self._line_equation(self.x, pt1, pt2)
         self._plot_data(file_vol, file_deform)
 
     def sample_data(self, file_vol, file_deform):
@@ -117,8 +145,8 @@ class PlanarMesh(mesh.Mesh):
 
     def save_data(self, file_out, file_vol, file_deform):
         data = self.sample_data(file_vol, file_deform)
-        ndims = np.shape(data)
-        out = np.reshape(data, ndims[0] * ndims[1])
+        ndim = np.shape(data)
+        out = np.reshape(data, ndim[0] * ndim[1])
         save_overlay(file_out, out)
 
     def save_line(self, file_out):
@@ -134,9 +162,8 @@ class PlanarMesh(mesh.Mesh):
         yyy = self._flatten_coordinates
         faces = []
         counter1 = 0
-        length = np.shape(self.line_coordinates)[0] * np.shape(self.line_coordinates)[1]
+        length = np.prod(np.shape(self.line_coordinates)[:2])
         for i in range(length - second_dim):
-
             if not np.mod(counter1, second_dim - 1) and counter1 != 0:
                 counter1 = 0
                 continue
@@ -159,8 +186,8 @@ class PlanarMesh(mesh.Mesh):
 
     @property
     def _flatten_coordinates(self):
-        array_dims = np.shape(self.line_coordinates)
-        yyy = np.reshape(self.line_coordinates, (array_dims[0] * array_dims[1], 3))
+        length = np.prod(np.shape(self.line_coordinates)[:2])
+        yyy = np.reshape(self.line_coordinates, (length, 3))
         return yyy
 
     @property
@@ -210,6 +237,11 @@ class PlanarMesh(mesh.Mesh):
 
 
 class CurvedMesh(PlanarMesh):
+    MAX_ITER = 100000
+    COST_THRES = 1e-4
+    REPOSITION_STEP = 10000
+    CHECK_STEP = 1000
+
     def __init__(self, vtx, fac, idx):
         super().__init__(vtx, fac, idx)
 
@@ -222,9 +254,9 @@ class CurvedMesh(PlanarMesh):
 
     def project_coordinates(self, axis=0):
         # pts -> lines x pts x coords
-        pts = self.line_coordinates
+        pts = self.line_coordinates  # type: list
         counter = 0
-        while counter < 100000:
+        while counter < self.MAX_ITER:
             counter += 1
 
             # random line point
@@ -255,14 +287,14 @@ class CurvedMesh(PlanarMesh):
                 pts[x_random][y_random][1] = (p_prev[1] + p_next[1]) / 2
                 pts[x_random][y_random][2] = (p_prev[2] + p_next[2]) / 2
 
-            # remesh all line coordinates
-            if not np.mod(counter, 10000):
+            # reposition all line coordinates
+            if not np.mod(counter, self.REPOSITION_STEP):
                 for i, line in enumerate(pts):
                     pts[i] = self._reposition_mesh(line)
 
-            if not np.mod(counter, 1000):
+            if not np.mod(counter, self.CHECK_STEP):
                 cost = self._check_homogeneity(pts, axis=axis)
-                if cost < 1e-4:
+                if cost < self.COST_THRES:
                     for i, line in enumerate(pts):
                         pts[i] = self._reposition_mesh(line)
                     break
@@ -270,29 +302,29 @@ class CurvedMesh(PlanarMesh):
         return pts
 
     def _reposition_mesh(self, pts):
-        # remesh in the sense of vertex shifting
+        # reposition in the sense of vertex shifting
         # get closest vertex
         # get normal
-        # for each y -> remesh with formula
+        # for each y -> reposition with formula
         res = []
         for bla in pts:
             ind_here = self._closest_point(bla)
             n = self.vertex_normals[ind_here, :]
-            res.append(bla-np.dot(np.outer(n, n), bla-self.vtx[ind_here,:]))
+            res.append(bla-np.dot(np.outer(n, n), bla-self.vtx[ind_here, :]))
 
         return res
 
     def _closest_point(self, pt):
         vtx_tmp = self.vtx - pt
         dist = np.sqrt(vtx_tmp[:, 0]**2+vtx_tmp[:, 1]**2+vtx_tmp[:, 2]**2)
-        ind = np.where(dist == np.min(dist))[0][0]
+        idc = np.where(dist == np.min(dist))[0][0]
 
-        return ind
+        return idc
 
     def _check_homogeneity(self, arr, axis=0):
         dist = []
-        for i in range(1,np.shape(arr)[0]-1):
-            for j in range(1,np.shape(arr)[1]-1):
+        for i in range(1, np.shape(arr)[0]-1):
+            for j in range(1, np.shape(arr)[1]-1):
 
                 p = arr[i][j]
 
@@ -301,7 +333,7 @@ class CurvedMesh(PlanarMesh):
                     p_prev = arr[i - 1][j]
                     p_next = arr[i + 1][j]
                 elif axis == 1:
-                    p_prev = arr[i][j- 1]
+                    p_prev = arr[i][j - 1]
                     p_next = arr[i][j + 1]
                 else:
                     raise ValueError("Invalid argument for axis!")
@@ -315,13 +347,15 @@ class CurvedMesh(PlanarMesh):
 
 
 if __name__ == "__main__":
+    import os
     from nibabel.freesurfer.io import read_geometry
     surf_in = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_5"
     surf_out = "/home/daniel/Schreibtisch/bb100"
     ind = [106481, 103769, 101279, 98771]
     v, f = read_geometry(surf_in)
-    vol_in = "/home/daniel/Schreibtisch/data/data_sampler/vol/Z_all_left_right_GE_EPI3.nii"
-    deform_in = "/home/daniel/Schreibtisch/data/data_sampler/vol/source2target.nii.gz"
+    dir_base = "/home/daniel/Schreibtisch/data/data_sampler/vol"
+    vol_in = os.path.join(dir_base, "Z_all_left_right_GE_EPI3.nii")
+    deform_in = os.path.join(dir_base, "source2target.nii.gz")
 
     A = PlanarMesh(v, f, ind)
-    line = A.line_coordinates
+    #A.save_mesh(surf_out)
