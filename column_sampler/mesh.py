@@ -26,11 +26,9 @@ class PlanarMesh(mesh.Mesh):
                   LINE_LENGTH + LINE_STEP,
                   LINE_STEP)
 
-    def __init__(self, vtx, fac, ind, file_vol, file_deform=""):
+    def __init__(self, vtx, fac, idx, file_vol, file_deform=""):
         super().__init__(vtx, fac)
-        self.ind = ind
-        self.file_vol = file_vol
-        self.file_deform = file_deform
+        self.idx = idx
 
     @property
     @functools.lru_cache
@@ -43,8 +41,8 @@ class PlanarMesh(mesh.Mesh):
         path = []
         for i in range(len(ind)-1):
             tmp = shortest_path(graph,
-                                source=self.ind[i],
-                                target=self.ind[i+1],
+                                source=self.idx[i],
+                                target=self.idx[i + 1],
                                 weight='weight',
                                 method='dijkstra')
             path.extend(tmp[:-1])
@@ -54,8 +52,7 @@ class PlanarMesh(mesh.Mesh):
 
     @property
     @functools.lru_cache
-    def perpendicular_line(self):
-
+    def line_coordinates(self):
         pts = []
         ind_len = len(self.path_dijkstra)
         normal = self.vertex_normals  # surface normals
@@ -98,35 +95,30 @@ class PlanarMesh(mesh.Mesh):
 
         return pts
 
-    @property
-    @functools.lru_cache
-    def update_line(self):
-        for i, bla in enumerate(self.sample_data):
+    def update_coordinates(self, file_vol, file_deform):
+        data = self.sample_data(file_vol, file_deform)
+        self._plot_data(file_vol, file_deform)
+        for i, bla in enumerate(data):
             shift = self._get_shift(bla)
-            self.perpendicular_line[i] = self._apply_shift(self.perpendicular_line[i], shift)
+            xc = int(len(self.x) / 2)  # old center coordinate
+            xc = xc + shift  # new center coordinate
+            self.line_coordinates[i] = self._line_equation(self.x,
+                                                           self.line_coordinates[i][xc, :],
+                                                           self.line_coordinates[i][xc + 1, :])
+        self._plot_data(file_vol, file_deform)
 
-    @property
-    def sample_data(self):
+    def sample_data(self, file_vol, file_deform):
         data = []
-        for i in range(len(self.perpendicular_line)):
-            tmp = sample_line(self.perpendicular_line[i], vol_in, deform_in)
+        for i in range(len(self.line_coordinates)):
+            tmp = sample_line(self.line_coordinates[i], file_vol, file_deform)
             data.append(tmp)
 
         return data
 
-    @property
-    def plot_data(self):
-        fig, ax = plt.subplots(figsize=(5, 5))
-        b = self.sample_data
-        for i in range(len(b)):
-            ax.plot(self.x, b[i])
-        ax.set_xlabel("x in mm")
-        ax.set_ylabel("fMRI contrast")
-        plt.show()
-
-    def save_overlay(self, file_out):
-        ndims = np.shape(self.sample_data)
-        out = np.reshape(self.sample_data, ndims[0] * ndims[1])
+    def save_data(self, file_out, file_vol, file_deform):
+        data = self.sample_data(file_vol, file_deform)
+        ndims = np.shape(data)
+        out = np.reshape(data, ndims[0] * ndims[1])
         save_overlay(file_out, out)
 
     def save_line(self, file_out):
@@ -135,14 +127,14 @@ class PlanarMesh(mesh.Mesh):
         save_overlay(file_out, out)
 
     def save_points(self, file_out):
-        np.savez(file_out, pts=self.perpendicular_line)
+        np.savez(file_out, pts=self.line_coordinates)
 
     def save_mesh(self, file_out):
-        second_dim = np.shape(self.perpendicular_line)[1]
+        second_dim = np.shape(self.line_coordinates)[1]
         yyy = self._flatten_coordinates
         faces = []
         counter1 = 0
-        length = np.shape(self.perpendicular_line)[0] * np.shape(self.perpendicular_line)[1]
+        length = np.shape(self.line_coordinates)[0] * np.shape(self.line_coordinates)[1]
         for i in range(length - second_dim):
 
             if not np.mod(counter1, second_dim - 1) and counter1 != 0:
@@ -156,11 +148,30 @@ class PlanarMesh(mesh.Mesh):
         faces = np.array(faces)
         write_geometry(file_out, yyy, faces)
 
-    @staticmethod
-    def euclidean_distance(pt1, pt2):
-        return np.linalg.norm(pt2 - pt1)
+    def _plot_data(self, file_vol, file_deform):
+        fig, ax = plt.subplots(figsize=(5, 5))
+        b = self.sample_data(file_vol, file_deform)
+        for i in range(len(b)):
+            ax.plot(self.x, b[i])
+        ax.set_xlabel("x in mm")
+        ax.set_ylabel("fMRI contrast")
+        plt.show()
 
-    def _get_shift(self, data):
+    @property
+    def _flatten_coordinates(self):
+        array_dims = np.shape(self.line_coordinates)
+        yyy = np.reshape(self.line_coordinates, (array_dims[0] * array_dims[1], 3))
+        return yyy
+
+    @property
+    def _iter_edges(self):
+        for a, b, c in self.fac:
+            yield a, b, self._euclidean_distance(self.vtx[a], self.vtx[b])
+            yield b, c, self._euclidean_distance(self.vtx[b], self.vtx[c])
+            yield a, c, self._euclidean_distance(self.vtx[a], self.vtx[c])
+
+    @staticmethod
+    def _get_shift(data):
         xc = int(len(data) / 2)  # center coordinate
         peaks, _ = find_peaks(data)  # line peaks
 
@@ -173,36 +184,141 @@ class PlanarMesh(mesh.Mesh):
             peaks = peaks[0]
             data_shift = peaks - xc  # distance to center coordinate
         else:
-            data_shift = []
+            data_shift = 0
 
         return data_shift
 
-    def _apply_shift(self, coords, shift):
-        xc = int(len(self.x) / 2)  # old center coordinate
-        xc = xc + shift  # new center coordinate
-
-        return self._line_equation(self.x, coords[xc, :], coords[xc + 1, :])
+    @staticmethod
+    def _euclidean_distance(pt1, pt2):
+        return np.linalg.norm(pt2 - pt1)
 
     @staticmethod
     def _line_equation(x, a, b):
         return np.array([a + x * (a - b) / norm(a - b) for x in x])
 
     @property
-    def _flatten_coordinates(self):
-        array_dims = np.shape(self.perpendicular_line)
-        yyy = np.reshape(self.perpendicular_line, (array_dims[0] * array_dims[1], 3))
-        return yyy
+    def idx(self):
+        return self._idx
 
-    @property
-    def _iter_edges(self):
-        for a, b, c in self.fac:
-            yield a, b, self.euclidean_distance(self.vtx[a], self.vtx[b])
-            yield b, c, self.euclidean_distance(self.vtx[b], self.vtx[c])
-            yield a, c, self.euclidean_distance(self.vtx[a], self.vtx[c])
+    @idx.setter
+    def idx(self, i):
+        # only checks for normal multi-dimensional lists (array)
+        if not isinstance(i, list) or isinstance(i[0], list):
+            raise ValueError("Index list is not a one-dimensional list!")
+
+        self._idx = i
 
 
 class CurvedMesh(PlanarMesh):
-    pass
+    def __init__(self, vtx, fac, ind):
+        super().__init__(vtx, fac)
+        self.ind = self.path_dijkstra(ind)
+        self.line_temp = []
+
+    def closest_point(self, pt):
+
+        vtx_tmp = self.vtx - pt
+        dist = np.sqrt(vtx_tmp[:, 0]**2+vtx_tmp[:, 1]**2+vtx_tmp[:, 2]**2)
+        ind = np.where(dist == np.min(dist))[0][0]
+
+        return ind
+
+    def remesh(self, pts):
+        res = []
+        for bla in pts:
+            ind_here = self.closest_point(bla)
+            n = self.vertex_normals[ind_here, :]
+
+            # get closest vertex
+            # get normal
+            # for each y -> remesh with formula
+
+            res.append(bla-np.dot(np.outer(n, n), bla-self.vtx[ind_here,:]))
+
+        return res
+
+    def update_coordinates_proc(self, axis=[0, 1]):
+        for i in axis:
+            print(i)
+            self.update_coordinates(i)
+
+        return self.line_temp
+
+    def update_coordinates(self, axis=0):
+
+        # pts -> lines x pts x coords
+        pts = self.line_temp.copy()
+        counter = 0
+        while counter < 100000:
+            counter += 1
+
+            # random line point
+            if axis == 0:
+                x_random = np.random.randint(1, np.shape(pts)[0]-1)
+                y_random = np.random.randint(np.shape(pts)[1])
+
+                p = pts[x_random][y_random]
+                p_prev = pts[x_random-1][y_random]
+                p_next = pts[x_random+1][y_random]
+            elif axis == 1:
+                x_random = np.random.randint(np.shape(pts)[0])
+                y_random = np.random.randint(1, np.shape(pts)[1]-1)
+
+                p = pts[x_random][y_random]
+                p_prev = pts[x_random][y_random-1]
+                p_next = pts[x_random][y_random+1]
+            else:
+                raise ValueError("Invalid argument for axis!")
+
+            dist_prev = self.euclidean_distance(p, p_prev)
+            dist_next = self.euclidean_distance(p, p_next)
+            if dist_next / dist_prev > 0.1:
+
+                # new line point coordinates is the mean of neighboring
+                # coordinates
+                pts[x_random][y_random][0] = (p_prev[0] + p_next[0]) / 2
+                pts[x_random][y_random][1] = (p_prev[1] + p_next[1]) / 2
+                pts[x_random][y_random][2] = (p_prev[2] + p_next[2]) / 2
+
+            # remesh all line coordinates
+            if not np.mod(counter, 10000):
+                for i, line in enumerate(pts):
+                    pts[i] = self.remesh(line)
+
+            if not np.mod(counter, 1000):
+                cost = self.check_homogeneity(pts, axis=axis)
+                if cost < 1e-4:
+                    for i, line in enumerate(pts):
+                        pts[i] = self.remesh(line)
+                    break
+
+        self.line_temp = pts.copy()
+
+        return pts
+
+    def check_homogeneity(self, arr, axis=0):
+        dist = []
+        for i in range(1,np.shape(arr)[0]-1):
+            for j in range(1,np.shape(arr)[1]-1):
+
+                p = arr[i][j]
+
+                # random line point
+                if axis == 0:
+                    p_prev = arr[i - 1][j]
+                    p_next = arr[i + 1][j]
+                elif axis == 1:
+                    p_prev = arr[i][j- 1]
+                    p_next = arr[i][j + 1]
+                else:
+                    raise ValueError("Invalid argument for axis!")
+
+                dist_prev = self.euclidean_distance(p, p_prev)
+                dist_next = self.euclidean_distance(p, p_next)
+
+                dist.append(dist_next / dist_prev)
+
+        return np.abs(1 - np.mean(dist))
 
 
 if __name__ == "__main__":
@@ -215,4 +331,4 @@ if __name__ == "__main__":
     deform_in = "/home/daniel/Schreibtisch/data/data_sampler/vol/source2target.nii.gz"
 
     A = PlanarMesh(v, f, ind, vol_in, deform_in)
-    A.save_mesh(surf_out)
+    line = A.line_coordinates
