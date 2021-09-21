@@ -26,7 +26,7 @@ class PlanarMesh(mesh.Mesh):
                   LINE_LENGTH + LINE_STEP,
                   LINE_STEP)
 
-    def __init__(self, vtx, fac, idx, file_vol, file_deform=""):
+    def __init__(self, vtx, fac, idx):
         super().__init__(vtx, fac)
         self.idx = idx
 
@@ -95,7 +95,7 @@ class PlanarMesh(mesh.Mesh):
 
         return pts
 
-    def update_coordinates(self, file_vol, file_deform):
+    def shift_coordinates(self, file_vol, file_deform):
         data = self.sample_data(file_vol, file_deform)
         self._plot_data(file_vol, file_deform)
         for i, bla in enumerate(data):
@@ -210,44 +210,19 @@ class PlanarMesh(mesh.Mesh):
 
 
 class CurvedMesh(PlanarMesh):
-    def __init__(self, vtx, fac, ind):
-        super().__init__(vtx, fac)
-        self.ind = self.path_dijkstra(ind)
-        self.line_temp = []
+    def __init__(self, vtx, fac, idx):
+        super().__init__(vtx, fac, idx)
 
-    def closest_point(self, pt):
-
-        vtx_tmp = self.vtx - pt
-        dist = np.sqrt(vtx_tmp[:, 0]**2+vtx_tmp[:, 1]**2+vtx_tmp[:, 2]**2)
-        ind = np.where(dist == np.min(dist))[0][0]
-
-        return ind
-
-    def remesh(self, pts):
-        res = []
-        for bla in pts:
-            ind_here = self.closest_point(bla)
-            n = self.vertex_normals[ind_here, :]
-
-            # get closest vertex
-            # get normal
-            # for each y -> remesh with formula
-
-            res.append(bla-np.dot(np.outer(n, n), bla-self.vtx[ind_here,:]))
-
-        return res
-
-    def update_coordinates_proc(self, axis=[0, 1]):
+    def project_coordinates_sequence(self, axis=(0, 1)):
         for i in axis:
             print(i)
-            self.update_coordinates(i)
+            self.project_coordinates(i)
 
-        return self.line_temp
+        return self.line_coordinates
 
-    def update_coordinates(self, axis=0):
-
+    def project_coordinates(self, axis=0):
         # pts -> lines x pts x coords
-        pts = self.line_temp.copy()
+        pts = self.line_coordinates
         counter = 0
         while counter < 100000:
             counter += 1
@@ -270,8 +245,8 @@ class CurvedMesh(PlanarMesh):
             else:
                 raise ValueError("Invalid argument for axis!")
 
-            dist_prev = self.euclidean_distance(p, p_prev)
-            dist_next = self.euclidean_distance(p, p_next)
+            dist_prev = self._euclidean_distance(p, p_prev)
+            dist_next = self._euclidean_distance(p, p_next)
             if dist_next / dist_prev > 0.1:
 
                 # new line point coordinates is the mean of neighboring
@@ -283,20 +258,38 @@ class CurvedMesh(PlanarMesh):
             # remesh all line coordinates
             if not np.mod(counter, 10000):
                 for i, line in enumerate(pts):
-                    pts[i] = self.remesh(line)
+                    pts[i] = self._reposition_mesh(line)
 
             if not np.mod(counter, 1000):
-                cost = self.check_homogeneity(pts, axis=axis)
+                cost = self._check_homogeneity(pts, axis=axis)
                 if cost < 1e-4:
                     for i, line in enumerate(pts):
-                        pts[i] = self.remesh(line)
+                        pts[i] = self._reposition_mesh(line)
                     break
-
-        self.line_temp = pts.copy()
 
         return pts
 
-    def check_homogeneity(self, arr, axis=0):
+    def _reposition_mesh(self, pts):
+        # remesh in the sense of vertex shifting
+        # get closest vertex
+        # get normal
+        # for each y -> remesh with formula
+        res = []
+        for bla in pts:
+            ind_here = self._closest_point(bla)
+            n = self.vertex_normals[ind_here, :]
+            res.append(bla-np.dot(np.outer(n, n), bla-self.vtx[ind_here,:]))
+
+        return res
+
+    def _closest_point(self, pt):
+        vtx_tmp = self.vtx - pt
+        dist = np.sqrt(vtx_tmp[:, 0]**2+vtx_tmp[:, 1]**2+vtx_tmp[:, 2]**2)
+        ind = np.where(dist == np.min(dist))[0][0]
+
+        return ind
+
+    def _check_homogeneity(self, arr, axis=0):
         dist = []
         for i in range(1,np.shape(arr)[0]-1):
             for j in range(1,np.shape(arr)[1]-1):
@@ -313,8 +306,8 @@ class CurvedMesh(PlanarMesh):
                 else:
                     raise ValueError("Invalid argument for axis!")
 
-                dist_prev = self.euclidean_distance(p, p_prev)
-                dist_next = self.euclidean_distance(p, p_next)
+                dist_prev = self._euclidean_distance(p, p_prev)
+                dist_next = self._euclidean_distance(p, p_next)
 
                 dist.append(dist_next / dist_prev)
 
@@ -330,5 +323,5 @@ if __name__ == "__main__":
     vol_in = "/home/daniel/Schreibtisch/data/data_sampler/vol/Z_all_left_right_GE_EPI3.nii"
     deform_in = "/home/daniel/Schreibtisch/data/data_sampler/vol/source2target.nii.gz"
 
-    A = PlanarMesh(v, f, ind, vol_in, deform_in)
+    A = PlanarMesh(v, f, ind)
     line = A.line_coordinates
