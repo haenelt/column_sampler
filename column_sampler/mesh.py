@@ -7,15 +7,15 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 from networkx.algorithms.shortest_paths.generic import shortest_path
-from nibabel.freesurfer.io import write_geometry
 from column_filter import mesh
 from column_filter.io import save_overlay
-from column_sampler.util import sample_line
+from column_sampler.util import sample_data
 
 __all__ = ["PlanarMesh", "CurvedMesh"]
 
 
 class PlanarMesh(mesh.Mesh):
+    ## noinspection PyUnresolvedReferences
     """Mesh with planar shape.
 
     Bla...
@@ -125,7 +125,7 @@ class PlanarMesh(mesh.Mesh):
         return pts
 
     def shift_coordinates(self, file_vol, file_deform):
-        data = self.sample_data(file_vol, file_deform)
+        data = sample_data(self.line_coordinates, file_vol, file_deform)
         self._plot_data(file_vol, file_deform)
         for i, bla in enumerate(data):
             shift = self._get_shift(bla)
@@ -136,60 +136,21 @@ class PlanarMesh(mesh.Mesh):
             self.line_coordinates[i] = self._line_equation(self.x, pt1, pt2)
         self._plot_data(file_vol, file_deform)
 
-    def sample_data(self, file_vol, file_deform):
-        data = []
-        for i in range(len(self.line_coordinates)):
-            tmp = sample_line(self.line_coordinates[i], file_vol, file_deform)
-            data.append(tmp)
-
-        return data
-
-    def save_data(self, file_out, file_vol, file_deform):
-        data = self.sample_data(file_vol, file_deform)
-        ndim = np.shape(data)
-        out = np.reshape(data, ndim[0] * ndim[1])
-        save_overlay(file_out, out)
+        return self.line_coordinates
 
     def save_line(self, file_out):
         out = np.zeros(len(self.vtx))
         out[self.path_dijkstra] = 1
         save_overlay(file_out, out)
 
-    def save_points(self, file_out):
-        np.savez(file_out, pts=self.line_coordinates)
-
-    def save_mesh(self, file_out):
-        second_dim = np.shape(self.line_coordinates)[1]
-        yyy = self._flatten_coordinates
-        faces = []
-        counter1 = 0
-        length = np.prod(np.shape(self.line_coordinates)[:2])
-        for i in range(length - second_dim):
-            if not np.mod(counter1, second_dim - 1) and counter1 != 0:
-                counter1 = 0
-                continue
-            else:
-                counter1 += 1
-
-                faces.append([i, i + 1, i + second_dim])
-                faces.append([i + second_dim + 1, i + second_dim, i + 1])
-        faces = np.array(faces)
-        write_geometry(file_out, yyy, faces)
-
     def _plot_data(self, file_vol, file_deform):
         fig, ax = plt.subplots(figsize=(5, 5))
-        b = self.sample_data(file_vol, file_deform)
+        b = sample_data(self.line_coordinates, file_vol, file_deform)
         for i in range(len(b)):
             ax.plot(self.x, b[i])
         ax.set_xlabel("x in mm")
         ax.set_ylabel("fMRI contrast")
         plt.show()
-
-    @property
-    def _flatten_coordinates(self):
-        length = np.prod(np.shape(self.line_coordinates)[:2])
-        yyy = np.reshape(self.line_coordinates, (length, 3))
-        return yyy
 
     @property
     def _iter_edges(self):
@@ -364,4 +325,3 @@ if __name__ == "__main__":
     deform_in = os.path.join(dir_base, "source2target.nii.gz")
 
     A = CurvedMesh(v, f, ind)
-    # A.save_mesh(surf_out)

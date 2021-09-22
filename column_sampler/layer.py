@@ -8,7 +8,7 @@ __all__ = ["Layer"]
 
 class Layer:
     def __init__(self, coords, vtx_ref, fac_ref, vtx_white, vtx_pial):
-        self.coords = coords
+        self.coords = coords  # line x pt x coords
         self.vtx_ref = vtx_ref
         self.fac_ref = fac_ref
         self.vtx_white = vtx_white
@@ -21,9 +21,9 @@ class Layer:
     # output layer coordinates
 
     def get_distance(self):
-        a = np.array(1,1,1)
-        b = fac[]
-        np.linalg.norm(a-b)
+        for pt in self.coords:
+            a = np.linalg.norm(pt - self.vtx_ref[self.fac_ref[:,0]])
+            print(np.shape(a))
 
     @property
     def meshlines(self):

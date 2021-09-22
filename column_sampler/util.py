@@ -1,6 +1,11 @@
+# -*- coding: utf-8 -*-
+"""Bla."""
+
 import numpy as np
 import nibabel as nb
 from nibabel.affines import apply_affine
+
+__all__ = ["make_template", "sample_line", "sample_data"]
 
 
 def make_template(arr, threshold=1.7):
@@ -23,7 +28,45 @@ def make_template(arr, threshold=1.7):
     return res
 
 
-def linear_interpolation3d(x, y, z, arr_c):
+def sample_line(vtx, vol_in, deform_in):
+    """
+    This function samples data onto the given coordinate array using linear
+    interpolation.
+    Inputs:
+        *vtx: vertex coordinates in voxel space.
+        *file_data: filename of nifti volume.
+        *data_array: array with data points of nifti volume.
+    Outputs:
+        *res: array with sampled data.
+
+    """
+
+    vtx = _ras2vox(vtx, vol_in)
+    arr = nb.load(vol_in).get_fdata()
+    vtx_new = np.zeros_like(vtx)
+    if deform_in is not None:
+        arr_cmap = nb.load(deform_in).get_fdata()
+        for i in range(3):
+            vtx_new[:,i] = _linear_interpolation3d(vtx[:, 0], vtx[:, 1], vtx[:, 2],
+                                                  arr_cmap[:,:,:,i])
+        vtx = vtx_new.copy()
+
+    # sample data
+    res = _linear_interpolation3d(vtx[:, 0], vtx[:, 1], vtx[:, 2], arr)
+
+    return res
+
+
+def sample_data(coords, file_vol, file_deform):
+    data = []
+    for i in range(len(coords)):
+        tmp = sample_line(coords[i], file_vol, file_deform)
+        data.append(tmp)
+
+    return data
+
+
+def _linear_interpolation3d(x, y, z, arr_c):
     """Apply a linear interpolation of values in a 3D volume to an array of
     coordinates.
     Parameters
@@ -91,7 +134,7 @@ def _careful_divide(v, v0, v1):
     return (v - v0) / (v1 - v0) if v1 != v0 else v
 
 
-def ras2vox(vtx, vol_in):
+def _ras2vox(vtx, vol_in):
     """
     https://neurostars.org/t/get-voxel-to-ras-transformation-from-nifti-file/4549
     """
@@ -103,31 +146,3 @@ def ras2vox(vtx, vol_in):
     ras2vox_tkr = np.linalg.inv(vox2ras_tkr)
 
     return apply_affine(ras2vox_tkr, vtx)  # vox2ras_tkr
-
-
-def sample_line(vtx, vol_in, deform_in):
-    """
-    This function samples data onto the given coordinate array using linear interpolation.
-    Inputs:
-        *vtx: vertex coordinates in voxel space.
-        *file_data: filename of nifti volume.
-        *data_array: array with data points of nifti volume.
-    Outputs:
-        *res: array with sampled data.
-
-    """
-
-    vtx = ras2vox(vtx, vol_in)
-    arr = nb.load(vol_in).get_fdata()
-    vtx_new = np.zeros_like(vtx)
-    if deform_in is not None:
-        arr_cmap = nb.load(deform_in).get_fdata()
-        for i in range(3):
-            vtx_new[:,i] = linear_interpolation3d(vtx[:,0], vtx[:,1], vtx[:,2],
-                                                  arr_cmap[:,:,:,i])
-        vtx = vtx_new.copy()
-
-    # sample data
-    res = linear_interpolation3d(vtx[:, 0], vtx[:, 1], vtx[:, 2], arr)
-
-    return res
