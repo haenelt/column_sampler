@@ -316,8 +316,9 @@ class CurvedMesh(PlanarMesh):
 if __name__ == "__main__":
     import os
     from nibabel.freesurfer.io import read_geometry
+    from column_sampler.io import save_coords
     surf_in = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_5"
-    surf_out = "/home/daniel/Schreibtisch/bb100"
+    surf_out = "/home/daniel/Schreibtisch/bb100.npz"
     ind = [106481, 103769, 101279, 98771]
     v, f = read_geometry(surf_in)
     dir_base = "/home/daniel/Schreibtisch/data/data_sampler/vol"
@@ -325,3 +326,5 @@ if __name__ == "__main__":
     deform_in = os.path.join(dir_base, "source2target.nii.gz")
 
     A = CurvedMesh(v, f, ind)
+    coords = A.project_coordinates_sequence()
+    save_coords(surf_out, coords)

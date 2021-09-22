@@ -47,14 +47,21 @@ class Layer:
 
 if __name__ == "__main__":
     from nibabel.freesurfer.io import read_geometry, write_geometry
+    from column_sampler.io import load_coords
 
-    file_in1 = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_0"
-    file_in2 = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_10"
+    # filenames
+    file_white = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_0"
+    file_middle = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_5"
+    file_pial = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_10"
+    file_coords = "/home/daniel/Schreibtisch/bb100.npz"
 
-    vtx1, _ = read_geometry(file_in1)
-    vtx2, _ = read_geometry(file_in2)
+    # load vertices and faces
+    vtx_ref, fac_ref = read_geometry(file_middle)
+    vtx_white, _ = read_geometry(file_white)
+    vtx_pial, _ = read_geometry(file_pial)
+    coords = load_coords(file_coords)
 
-    A = Layer(vtx1, vtx2)
-    B = A.meshlines()
+    A = Layer(coords, vtx_ref, fac_ref, vtx_white, vtx_pial)
 
-    write_geometry("/home/daniel/Schreibtisch/bla", B[0], B[1])
+    #B = A.meshlines
+    #write_geometry("/home/daniel/Schreibtisch/bla", B[0], B[1])
