@@ -33,6 +33,8 @@ class PlanarMesh(mesh.Mesh):
     ----------
     LINE_LENGTH : int
         bla.
+    LINE_STEP : float
+        must be chosen so that the coordinates length is odd.
 
     Raises
     ------
@@ -238,6 +240,7 @@ class PlanarMesh(mesh.Mesh):
 class CurvedMesh(PlanarMesh):
     MAX_ITER = 100000
     COST_THRES = 1e-4
+    DIST_RATIO = 0.1
     REPOSITION_STEP = 10000
     CHECK_STEP = 1000
 
@@ -257,6 +260,7 @@ class CurvedMesh(PlanarMesh):
         counter = 0
         while counter < self.MAX_ITER:
             counter += 1
+            pt_fix = int(len(self.line_coordinates[0])/2)
 
             # random line point
             if axis == 0:
@@ -276,9 +280,12 @@ class CurvedMesh(PlanarMesh):
             else:
                 raise ValueError("Invalid argument for axis!")
 
+            if y_random == pt_fix:
+                continue
+
             dist_prev = self._euclidean_distance(p, p_prev)
             dist_next = self._euclidean_distance(p, p_next)
-            if dist_next / dist_prev > 0.1:
+            if dist_next / dist_prev > self.DIST_RATIO:
 
                 # new line point coordinates is the mean of neighboring
                 # coordinates
@@ -356,5 +363,5 @@ if __name__ == "__main__":
     vol_in = os.path.join(dir_base, "Z_all_left_right_GE_EPI3.nii")
     deform_in = os.path.join(dir_base, "source2target.nii.gz")
 
-    A = PlanarMesh(v, f, ind)
+    A = CurvedMesh(v, f, ind)
     # A.save_mesh(surf_out)
