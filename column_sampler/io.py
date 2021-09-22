@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""Bla."""
+
+__all__ = ["read_anchor"]
+
 
 def read_anchor(file_in):
     with open(file_in) as fp:
@@ -10,5 +15,22 @@ def read_anchor(file_in):
     return res
 
 
-f = "/home/daniel/Schreibtisch/bla.txt"
-A = read_anchor(f)
+def load_coords():
+    pass
+
+
+def load_data():
+    pass
+
+
+def save_coords():
+    pass
+
+
+def save_data():
+    pass
+
+
+if __name__ == "__main__":
+    f = "/home/daniel/Schreibtisch/bla.txt"
+    A = read_anchor(f)

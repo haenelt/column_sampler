@@ -1,20 +1,7 @@
-- important:
-    - fixate middle point
-    - regularize line
-
-- manual selection of vertices
-    - only use voxels which have same directionality (sign) across scans
-    - then choose the best ones
-- make lines
-    - load line labels
-    - get coordinates orthogonal to line
-    - shift according to contrast (get shift, apply shift, plot for sanity check)
-    - get coordinates across cortical depth
+- fixate middle point
+- mache fit für mehrere labels
+- coordinates across cortical depth
+- io: save coords as mesh, save data as overlay
 - sample data
-    - transform coordinates to volume
-    - save in array
-    - output as overlay for visualization purposes
-- analyze
-    - line plot
-    - fit with gaussian
-    - get parameter estimates (height, width, slope, etc.)
+- plot: show column, show fitted line
+- stats: fit with gaussian, get parameter estimates (height, width, slope, etc.)

@@ -5,7 +5,6 @@ import functools
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from numpy.linalg import norm
 from scipy.signal import find_peaks
 from networkx.algorithms.shortest_paths.generic import shortest_path
 from nibabel.freesurfer.io import write_geometry
@@ -221,7 +220,7 @@ class PlanarMesh(mesh.Mesh):
 
     @staticmethod
     def _line_equation(x, a, b):
-        return np.array([a + x * (a - b) / norm(a - b) for x in x])
+        return np.array([a + x * (a - b) / np.linalg.norm(a - b) for x in x])
 
     @property
     def idx(self):
@@ -358,4 +357,4 @@ if __name__ == "__main__":
     deform_in = os.path.join(dir_base, "source2target.nii.gz")
 
     A = PlanarMesh(v, f, ind)
-    #A.save_mesh(surf_out)
+    # A.save_mesh(surf_out)
