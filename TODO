@@ -1,4 +1,3 @@
-- io -> check stuff
 - coordinates across cortical depth
 - plot: show column, show fitted line
 - stats: fit with gaussian, get parameter estimates (height, width, slope, etc.)
