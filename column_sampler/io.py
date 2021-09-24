@@ -25,7 +25,12 @@ def read_anchor(file_in):
 
 
 def load_coords(file_in):
-    #_check_npz(file_in)
+    if not os.path.isfile(file_in):
+        raise FileNotFoundError("File not found!")
+
+    if not file_in.endswidth(".npz"):
+        raise ValueError("File has wrong format!")
+
     coords = np.load(file_in)["pts"]
     if not np.shape(coords)[-1] == 3:
         raise ValueError("Coordinates have wrong shape!")
@@ -34,14 +39,21 @@ def load_coords(file_in):
 
 
 def load_data(file_in):
-    #_check_npz(file_in)
+    if not os.path.isfile(file_in):
+        raise FileNotFoundError("File not found!")
+
+    if not file_in.endswidth(".npz"):
+        raise ValueError("File has wrong format!")
+
     data = np.load(file_in)["data"]
 
     return data
 
 
 def save_coords(file_out, coords):
-    #_check_npz(file_out)
+    if not file_out.endswidth(".npz"):
+        raise ValueError("File has wrong format!")
+
     if not np.shape(coords)[-1] == 3:
         raise ValueError("Coordinates have wrong shape!")
 
@@ -49,7 +61,8 @@ def save_coords(file_out, coords):
 
 
 def save_data(file_out, data):
-    #_check_npz(file_out)
+    if not file_out.endswidth(".npz"):
+        raise ValueError("File has wrong format!")
 
     return np.savez(file_out, data=data)
 
@@ -74,16 +87,11 @@ def coords_to_mesh(file_out, coords):
 
 
 def data_to_overlay(file_out, data):
+    if not file_out.endswidth(".mgh"):
+        raise ValueError("File has wrong format!")
+
     out = _flatten_data(data)
     save_overlay(file_out, out)
-
-
-def _check_npz(file):
-    if not os.path.isfile(file):
-        raise FileNotFoundError("File not found!")
-
-    if not file.endswidth(".npz"):
-        raise ValueError("File has wrong format!")
 
 
 def _flatten_coordinates(coords):
