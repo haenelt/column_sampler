@@ -60,6 +60,25 @@ def save_coords(file_out, coords):
     return np.savez(file_out, pts=coords)
 
 
+def save_meshlines(file_out, v1, v2):
+    """
+    This function returns a vertex and a corresponding face array to visualize
+    point-to-point connections between two congruent surface meshs.
+    """
+
+    # face of line
+    fac = [[0, 1, 0]]
+
+    vtx_res = []
+    fac_res = []
+    for i, j in zip(v1, v2):
+        vtx_res.extend([list(i), list(j)])
+        fac_res.extend(fac)
+        fac[0] = [x + 2 for x in fac[0]]
+
+    write_geometry(file_out, vtx_res, fac_res)
+
+
 def save_data(file_out, data):
     if not file_out.endswidth(".npz"):
         raise ValueError("File has wrong format!")
