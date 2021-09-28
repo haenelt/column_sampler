@@ -28,7 +28,7 @@ def load_coords(file_in):
     if not os.path.isfile(file_in):
         raise FileNotFoundError("File not found!")
 
-    if not file_in.endswidth(".npz"):
+    if not file_in.endswith(".npz"):
         raise ValueError("File has wrong format!")
 
     coords = np.load(file_in)["pts"]

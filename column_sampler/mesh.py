@@ -183,7 +183,7 @@ class PlanarMesh(mesh.Mesh):
 
     @staticmethod
     def _line_equation(x, a, b):
-        return np.array([a + x * (a - b) / np.linalg.norm(a - b) for x in x])
+        return np.array([a + i * (b - a) / np.linalg.norm(a - b) for i in x])
 
     @property
     def idx(self):
