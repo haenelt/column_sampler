@@ -100,6 +100,68 @@ class Layer:
         else:
             return np.reshape(pts, (dim1, dim2))
 
+    @property
+    def coords(self):
+        return self._coords
+
+    @coords.setter
+    def coords(self, c):
+        c = np.asarray(c)
+        if c.ndim != 3 or np.shape(c)[2] != 3:
+            raise ValueError("Coordinates have wrong shape!")
+
+        self._coords = c
+
+    @property
+    def vtx_ref(self):
+        return self._vtx_ref
+
+    @vtx_ref.setter
+    def vtx_ref(self, v):
+        v = np.asarray(v)
+        if v.ndim != 2 or np.shape(v)[1] != 3:
+            raise ValueError("Vertices have wrong shape!")
+
+        self._vtx_ref = v
+
+    @property
+    def fac_ref(self):
+        return self._fac_ref
+
+    @fac_ref.setter
+    def fac_ref(self, f):
+        f = np.asarray(f)
+        if f.ndim != 2 or np.shape(f)[1] != 3:
+            raise ValueError("Vertices have wrong shape!")
+
+        if np.max(f) != len(self.vtx_ref) - 1:
+            raise ValueError("Faces do not match vertex array!")
+
+        self._fac_ref = f
+
+    @property
+    def vtx_white(self):
+        return self._vtx_white
+
+    @vtx_white.setter
+    def vtx_white(self, v):
+        v = np.asarray(v)
+        if v.ndim != 2 or np.shape(v)[1] != 3:
+            raise ValueError("Vertices have wrong shape!")
+
+        self._vtx_white = v
+
+    @property
+    def vtx_pial(self):
+        return self._vtx_pial
+
+    @vtx_pial.setter
+    def vtx_pial(self, v):
+        v = np.asarray(v)
+        if v.ndim != 2 or np.shape(v)[1] != 3:
+            raise ValueError("Vertices have wrong shape!")
+
+        self._vtx_pial = v
 
 if __name__ == "__main__":
     from nibabel.freesurfer.io import read_geometry
