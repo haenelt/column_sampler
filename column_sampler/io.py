@@ -41,14 +41,15 @@ def read_anchor(file_in):
         res = {}
         for i, r in enumerate(rows):
             tmp = r.strip()
-            res[str(i)] = [int(e) if e.isdigit() else e for e in tmp.split(',')]
+            res[str(i)] = [int(e) if e.isdigit() else e
+                           for e in tmp.split(',')]
 
     return res
 
 
 def load_coords(file_in):
-    """Loads an array of coordinates saved as .npz file. The file is expected to
-    contain a numpy array named `pts`.
+    """Loads an array of coordinates saved as .npz file. The file is expected
+    to contain a numpy array named `pts`.
 
     Parameters
     ----------
@@ -147,8 +148,8 @@ def save_coords(file_out, coords):
     ValueError
         If `file_in` has the wrong file extension.
     ValueError
-        If `coords` has a wrong shape. The last array dimension must have length
-        3 to ensure that 3D coordinates are saved.
+        If `coords` has a wrong shape. The last array dimension must have
+        length 3 to ensure that 3D coordinates are saved.
 
     Returns
     -------
