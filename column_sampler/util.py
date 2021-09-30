@@ -82,7 +82,8 @@ def unflatten_array(pts, pts_ref):
     pts = np.array(pts)
     pts_ref = np.array(pts_ref)
     dim1, dim2 = np.shape(pts_ref)[:2]
-    if np.shape(pts)[-1] == 3 and len(np.shape(pts)) > 2:
+    print(np.shape(pts))
+    if np.shape(pts)[-1] == 3 and len(np.shape(pts)) > 1:
         return np.reshape(pts, (dim1, dim2, 3))
     else:
         return np.reshape(pts, (dim1, dim2))

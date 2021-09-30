@@ -9,7 +9,7 @@ from scipy.signal import find_peaks
 from networkx.algorithms.shortest_paths.generic import shortest_path
 from column_filter import mesh
 from column_filter.io import save_overlay
-from .util import sample_data
+from util import sample_data
 
 __all__ = ["PlanarMesh", "CurvedMesh"]
 

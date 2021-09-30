@@ -144,25 +144,3 @@ class Layer:
             raise ValueError("Vertices have wrong shape!")
 
         self._vtx_pial = v
-
-
-if __name__ == "__main__":
-    # Layer
-    from nibabel.freesurfer.io import read_geometry
-    from column_sampler.io import load_coords
-    from column_sampler.layer import Layer
-
-    # filenames
-    file_white = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_0"
-    file_middle = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_5"
-    file_pial = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_10"
-    file_coords = "/home/daniel/Schreibtisch/bb100.npz"
-
-    # load vertices and faces
-    v_ref, f_ref = read_geometry(file_middle)
-    v_white, _ = read_geometry(file_white)
-    v_pial, _ = read_geometry(file_pial)
-    cds = load_coords(file_coords)
-
-    A = Layer(cds, v_ref, f_ref, v_white, v_pial)
-    bla = A.generate_layer(11)
