@@ -18,14 +18,14 @@ def make_template(arr, threshold=1.7):
 
     Parameters
     ----------
-    arr : ndarray, shape (N, M)
+    arr : np.ndarray, shape=(N, M)
         Contrast array.
     threshold : float, optional
         Threshold value.
 
     Returns
     -------
-    mask : ndarray, shape (N,)
+    mask : np.ndarray, shape=(N,)
         Mask array.
 
     """
@@ -110,18 +110,18 @@ def _linear_interpolation3d(x, y, z, vol):
 
     Parameters
     ----------
-    x : ndarray, shape (N,)
+    x : np.ndarray, shape=(N,)
         x-coordinates in voxel space.
-    y : ndarray, shape (N,)
+    y : np.ndarray, shape=(N,)
         y-coordinates in voxel space.
-    z : ndarray, shape (N,)
+    z : np.ndarray, shape=(N,)
         z-coordinates in voxel space.
-    vol : ndarray, shape (U, V, W)
+    vol : np.ndarray, shape=(U, V, W)
         3D array with input values.
 
     Returns
     -------
-    c : ndarray, shape (N,)
+    c : np.ndarray, shape=(N,)
         Interpolated values for (x, y, z) coordinates.
     """
 
@@ -196,14 +196,14 @@ def _ras2vox(vtx, vol_in):
 
     Parameters
     ----------
-    vtx : ndarray, shape (N, 3)
+    vtx : np.ndarray, shape=(N, 3)
         Vertex array in tksurfer space.
     vol_in : str
         Reference nifti volume.
 
     Returns
     -------
-    ndarray, shape (N, 3)
+    np.ndarray, shape=(N, 3)
         Vertex array in voxel space.
 
     References

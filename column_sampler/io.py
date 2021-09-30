@@ -70,7 +70,7 @@ def load_coords(file_in):
 
     Returns
     -------
-    coords : ndarray, shape (N, M, 3)
+    coords : np.ndarray, shape=(N, M, 3)
         Array of 3D coordinates.
 
     """
@@ -116,7 +116,7 @@ def load_data(file_in):
 
     Returns
     -------
-    data : ndarray, shape (N, M)
+    data : np.ndarray, shape=(N, M)
         Data array.
 
     """
@@ -147,7 +147,7 @@ def save_coords(file_out, coords):
     ----------
     file_out : str
         File name of output file.
-    coords : ndarray, shape (N, M, 3)
+    coords : np.ndarray, shape=(N, M, 3)
         Array of 3D coordinates.
 
     Raises
@@ -181,7 +181,7 @@ def save_data(file_out, data):
     ----------
     file_out : str
         File name of output file.
-    data : ndarray, shape (N, M)
+    data : np.ndarray, shape=(N, M)
         Data array.
 
     Raises
@@ -215,9 +215,9 @@ def save_meshlines(file_out, vtx1, vtx2):
     ----------
     file_out : str
         File name of output file.
-    vtx1 : ndarray, shape (N, 3)
+    vtx1 : np.ndarray, shape=(N, 3)
         First vertex array.
-    vtx2 : ndarray, shape (N, 3)
+    vtx2 : np.ndarray, shape=(N, 3)
         Second vertex array.
 
     Returns
@@ -247,7 +247,7 @@ def coords_to_mesh(file_out, coords):
     ----------
     file_out : str
         File name of output file.
-    coords : ndarray, shape (N, M, 3)
+    coords : np.ndarray, shape=(N, M, 3)
         Array of 3D coordinates.
 
     Raises
@@ -293,7 +293,7 @@ def data_to_overlay(file_out, data):
     ----------
     file_out : str
         File name of output file.
-    data : ndarray, shape (N, M)
+    data : np.ndarray, shape=(N, M)
         Data array.
 
     Raises
