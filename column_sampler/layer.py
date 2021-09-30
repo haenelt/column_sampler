@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Bla."""
+"""Cortical layer definition."""
 
 import functools
 import numpy as np
+from .util import flatten_array, unflatten_array
 
 __all__ = ["Layer"]
 
@@ -18,7 +19,7 @@ class Layer:
     @property
     @functools.lru_cache
     def closest_face(self):
-        coords_flat = self._flatten_array(self.coords)
+        coords_flat = flatten_array(self.coords)
         x_flat = coords_flat[:, 0]
         y_flat = coords_flat[:, 1]
         z_flat = coords_flat[:, 2]
@@ -33,15 +34,15 @@ class Layer:
 
         arr = np.sqrt(arr)
         ind_fac = np.argmin(arr, axis=1)
-        ind_fac = self._unflatten_array(ind_fac, self.coords[:, :, 0])
+        ind_fac = unflatten_array(ind_fac, self.coords[:, :, 0])
 
         return ind_fac
 
     @property
     @functools.lru_cache
-    def border_points(self):
-        coords_flat = self._flatten_array(self.coords)
-        fac_flat = self._flatten_array(self.closest_face)
+    def border_coordinates(self):
+        coords_flat = flatten_array(self.coords)
+        fac_flat = flatten_array(self.closest_face)
 
         pial = np.zeros((len(fac_flat), 3))
         white = np.zeros((len(fac_flat), 3))
@@ -58,17 +59,17 @@ class Layer:
         pt1 = coords_flat.copy()
         pt2 = coords_flat + x
 
-        pt1_moved = [self._line_equation(-x, pt1[i], pt2[i])
+        pt1_moved = [self._line_point(-x, pt1[i], pt2[i])
                      for i, x in enumerate(x_white_dist)]
-        pt2_moved = [self._line_equation(x, pt1[i], pt2[i])
+        pt2_moved = [self._line_point(x, pt1[i], pt2[i])
                      for i, x in enumerate(x_pial_dist)]
-        pt1_moved = self._unflatten_array(pt1_moved, self.coords)
-        pt2_moved = self._unflatten_array(pt2_moved, self.coords)
+        pt1_moved = unflatten_array(pt1_moved, self.coords)
+        pt2_moved = unflatten_array(pt2_moved, self.coords)
 
         return pt1_moved, pt2_moved
 
     def generate_layer(self, n_layer):
-        w, p = self.border_points
+        w, p = self.border_coordinates
         dim1, dim2 = np.shape(w)[:2]
         layer = np.zeros((n_layer, dim1, dim2, 3))
         for i in range(n_layer):
@@ -78,27 +79,8 @@ class Layer:
         return layer
 
     @staticmethod
-    def _line_equation(x, a, b):
+    def _line_point(x, a, b):
         return a + x * (b - a) / np.linalg.norm(a - b)
-
-    @staticmethod
-    def _flatten_array(pts):
-        pts = np.array(pts)
-        dim1, dim2 = np.shape(pts)[:2]
-        if np.shape(pts)[-1] == 3 and len(np.shape(pts)) > 2:
-            return np.reshape(pts, (dim1 * dim2, 3))
-        else:
-            return np.reshape(pts, (dim1 * dim2))
-
-    @staticmethod
-    def _unflatten_array(pts, pts_ref):
-        pts = np.array(pts)
-        pts_ref = np.array(pts_ref)
-        dim1, dim2 = np.shape(pts_ref)[:2]
-        if np.shape(pts)[-1] == 3 and len(np.shape(pts)) > 2:
-            return np.reshape(pts, (dim1, dim2, 3))
-        else:
-            return np.reshape(pts, (dim1, dim2))
 
     @property
     def coords(self):
@@ -162,22 +144,3 @@ class Layer:
             raise ValueError("Vertices have wrong shape!")
 
         self._vtx_pial = v
-
-if __name__ == "__main__":
-    from nibabel.freesurfer.io import read_geometry
-    from column_sampler.io import load_coords
-
-    # filenames
-    file_white = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_0"
-    file_middle = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_5"
-    file_pial = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_10"
-    file_coords = "/home/daniel/Schreibtisch/bb100.npz"
-
-    # load vertices and faces
-    v_ref, f_ref = read_geometry(file_middle)
-    v_white, _ = read_geometry(file_white)
-    v_pial, _ = read_geometry(file_pial)
-    cds = load_coords(file_coords)
-
-    A = Layer(cds, v_ref, f_ref, v_white, v_pial)
-    bla = A.generate_layer(11)

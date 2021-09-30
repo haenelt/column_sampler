@@ -1,16 +1,41 @@
 # -*- coding: utf-8 -*-
-"""Bla."""
+"""I/O functions."""
 
 import os
 import numpy as np
 from nibabel.freesurfer.io import write_geometry
 from column_filter.io import save_overlay
+from .util import flatten_array
 
 __all__ = ["read_anchor", "load_coords", "load_data", "save_coords",
-           "save_data", "coords_to_mesh", "data_to_overlay"]
+           "save_meshlines", "save_data", "coords_to_mesh", "data_to_overlay"]
 
 
 def read_anchor(file_in):
+    """Load vertex coordinates and associated faces of surface mesh from file.
+    Currently, only meshs in freesurfer file format are supported.
+
+    Parameters
+    ----------
+    file_in : str
+        File name of input file.
+
+    Raises
+    ------
+    ValueError
+        If `file_in` is not a existing file name.
+
+    Returns
+    -------
+    dict
+        Dictionary collecting the output under the following keys
+        * vtx : np.ndarray, shape=(N,3)
+            Vertex coordinates.
+        * fac : np.ndarray, shape=(M,3)
+            Vertex indices of each triangle.
+    """
+
+    # check file name
     if not os.path.isfile(file_in):
         raise FileNotFoundError("File not found!")
 
@@ -88,7 +113,7 @@ def save_data(file_out, data):
 
 def coords_to_mesh(file_out, coords):
     second_dim = np.shape(coords)[1]
-    yyy = _flatten_coordinates(coords)
+    yyy = flatten_array(coords)
     faces = []
     counter1 = 0
     length = np.prod(np.shape(coords)[:2])
@@ -109,22 +134,5 @@ def data_to_overlay(file_out, data):
     if not file_out.endswidth(".mgh"):
         raise ValueError("File has wrong format!")
 
-    out = _flatten_data(data)
+    out = flatten_array(data)
     save_overlay(file_out, out)
-
-
-def _flatten_coordinates(coords):
-    length = np.prod(np.shape(coords)[:2])
-    yyy = np.reshape(coords, (length, 3))
-    return yyy
-
-
-def _flatten_data(data):
-    ndim = np.shape(data)
-    out = np.reshape(data, ndim[0] * ndim[1])
-    return out
-
-
-if __name__ == "__main__":
-    f = "/home/daniel/Schreibtisch/bla.txt"
-    A = read_anchor(f)

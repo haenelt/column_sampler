@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Bla."""
+"""Utility functions."""
 
 import numpy as np
 import nibabel as nb
 from nibabel.affines import apply_affine
 
-__all__ = ["make_template", "sample_line", "sample_data"]
+__all__ = ["make_template", "sample_line", "sample_data", "flatten_array",
+           "unflatten_array"]
 
 
 def make_template(arr, threshold=1.7):
@@ -47,8 +48,10 @@ def sample_line(vtx, vol_in, deform_in):
     if deform_in is not None:
         arr_cmap = nb.load(deform_in).get_fdata()
         for i in range(3):
-            vtx_new[:,i] = _linear_interpolation3d(vtx[:, 0], vtx[:, 1], vtx[:, 2],
-                                                  arr_cmap[:,:,:,i])
+            vtx_new[:, i] = _linear_interpolation3d(vtx[:, 0],
+                                                    vtx[:, 1],
+                                                    vtx[:, 2],
+                                                    arr_cmap[:, :, :, i])
         vtx = vtx_new.copy()
 
     # sample data
@@ -64,6 +67,25 @@ def sample_data(coords, file_vol, file_deform):
         data.append(tmp)
 
     return data
+
+
+def flatten_array(pts):
+    pts = np.array(pts)
+    dim1, dim2 = np.shape(pts)[:2]
+    if np.shape(pts)[-1] == 3 and len(np.shape(pts)) > 2:
+        return np.reshape(pts, (dim1 * dim2, 3))
+    else:
+        return np.reshape(pts, (dim1 * dim2))
+
+
+def unflatten_array(pts, pts_ref):
+    pts = np.array(pts)
+    pts_ref = np.array(pts_ref)
+    dim1, dim2 = np.shape(pts_ref)[:2]
+    if np.shape(pts)[-1] == 3 and len(np.shape(pts)) > 2:
+        return np.reshape(pts, (dim1, dim2, 3))
+    else:
+        return np.reshape(pts, (dim1, dim2))
 
 
 def _linear_interpolation3d(x, y, z, arr_c):

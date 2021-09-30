@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Utility functions for triangle surface mesh."""
+"""Triangle surface mesh definition."""
 
 import functools
 import numpy as np
@@ -9,7 +9,7 @@ from scipy.signal import find_peaks
 from networkx.algorithms.shortest_paths.generic import shortest_path
 from column_filter import mesh
 from column_filter.io import save_overlay
-from column_sampler.util import sample_data
+from .util import sample_data
 
 __all__ = ["PlanarMesh", "CurvedMesh"]
 
@@ -68,14 +68,14 @@ class PlanarMesh(mesh.Mesh):
         graph = nx.Graph()
         graph.add_weighted_edges_from(self._iter_edges)
         path = []
-        for i in range(len(ind)-1):
+        for i in range(len(self.idx)-1):
             tmp = shortest_path(graph,
                                 source=self.idx[i],
                                 target=self.idx[i + 1],
                                 weight='weight',
                                 method='dijkstra')
             path.extend(tmp[:-1])
-        path.append(ind[-1])
+        path.append(self.idx[-1])
 
         return path
 
@@ -311,20 +311,3 @@ class CurvedMesh(PlanarMesh):
                 dist.append(dist_next / dist_prev)
 
         return np.abs(1 - np.mean(dist))
-
-
-if __name__ == "__main__":
-    import os
-    from nibabel.freesurfer.io import read_geometry
-    from column_sampler.io import save_coords
-    surf_in = "/home/daniel/Schreibtisch/data/data_sampler/surf/lh.layer_5"
-    surf_out = "/home/daniel/Schreibtisch/bb100.npz"
-    ind = [106481, 103769, 101279, 98771]
-    v, f = read_geometry(surf_in)
-    dir_base = "/home/daniel/Schreibtisch/data/data_sampler/vol"
-    vol_in = os.path.join(dir_base, "Z_all_left_right_GE_EPI3.nii")
-    deform_in = os.path.join(dir_base, "source2target.nii.gz")
-
-    A = CurvedMesh(v, f, ind)
-    coords = A.project_coordinates_sequence()
-    save_coords(surf_out, coords)
