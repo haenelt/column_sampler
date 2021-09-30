@@ -10,23 +10,38 @@ __all__ = ["make_template", "sample_line", "sample_data", "flatten_array",
 
 
 def make_template(arr, threshold=1.7):
+    """Get a mask from a set of contrast arrays. A two-dimensional array
+    containing individual contrast arrays in separate column is used as input. A
+    mask is created by excluding all data points which are below threshold in at
+    least one contrast array (column). Finally, all data points are excluded
+    which have inconsistent signs between contrasts (columns).
+
+    Parameters
+    ----------
+    arr : ndarray, shape (N, M)
+        Contrast array.
+    threshold : float, optional
+        Threshold value.
+
+    Returns
+    -------
+    mask : ndarray, shape (N,)
+        Mask array.
+
     """
-    *input list of arrays
-    *for each array nan values below threshold
-    *for all arrays nan values which have inconsistent signs
-    """
+
     nrows, ncols = np.shape(arr)
-    res = np.ones(nrows)
+    mask = np.ones(nrows)
 
     if threshold:
         for i in range(ncols):
-            res[arr[:, i] < threshold] = 0
+            mask[arr[:, i] < threshold] = 0
 
     for i in range(ncols):
         tmp = np.sign(arr[:, 0]) * np.sign(arr[:, i])
-        res[tmp != 1] = 0
+        mask[tmp != 1] = 0
 
-    return res
+    return mask
 
 
 def sample_line(vtx, vol_in, deform_in):
@@ -89,23 +104,25 @@ def unflatten_array(pts, pts_ref):
         return np.reshape(pts, (dim1, dim2))
 
 
-def _linear_interpolation3d(x, y, z, arr_c):
-    """Apply a linear interpolation of values in a 3D volume to an array of
+def _linear_interpolation3d(x, y, z, vol):
+    """Apply a linear interpolation of values in a 3D array to an array of
     coordinates.
+
     Parameters
     ----------
-    x : (N,) np.ndarray
+    x : ndarray, shape (N,)
         x-coordinates in voxel space.
-    y : (N,) np.ndarray
+    y : ndarray, shape (N,)
         y-coordinates in voxel space.
-    z : (N,) np.ndarray
+    z : ndarray, shape (N,)
         z-coordinates in voxel space.
-    arr_c : (U,V,W) np.ndarray
+    vol : ndarray, shape (U, V, W)
         3D array with input values.
+
     Returns
     -------
-    c : (N,) np.ndarray
-        Interpolated values for [x,y,z].
+    c : ndarray, shape (N,)
+        Interpolated values for (x, y, z) coordinates.
     """
 
     # corner points
@@ -126,14 +143,14 @@ def _linear_interpolation3d(x, y, z, arr_c):
     zd = np.asarray(zd)
 
     # corner values
-    c000 = arr_c[x0, y0, z0]
-    c001 = arr_c[x0, y0, z1]
-    c010 = arr_c[x0, y1, z0]
-    c011 = arr_c[x0, y1, z1]
-    c100 = arr_c[x1, y0, z0]
-    c101 = arr_c[x1, y0, z1]
-    c110 = arr_c[x1, y1, z0]
-    c111 = arr_c[x1, y1, z1]
+    c000 = vol[x0, y0, z0]
+    c001 = vol[x0, y0, z1]
+    c010 = vol[x0, y1, z0]
+    c011 = vol[x0, y1, z1]
+    c100 = vol[x1, y0, z0]
+    c101 = vol[x1, y0, z1]
+    c110 = vol[x1, y1, z0]
+    c111 = vol[x1, y1, z1]
 
     # interpolation along x-axis
     c00 = c000 * (1 - xd) + c100 * xd
@@ -151,15 +168,47 @@ def _linear_interpolation3d(x, y, z, arr_c):
     return c
 
 
-def _careful_divide(v, v0, v1):
-    """Only divide if v0 and v1 are different from each other."""
+def _careful_divide(v1, v2, v3):
+    """Only divide if v2 and v3 are different from each other.
 
-    return (v - v0) / (v1 - v0) if v1 != v0 else v
+    Parameters
+    ----------
+    v1 : float
+        Coordinate 1.
+    v2 : float
+        Coordinate 2.
+    v3 : float
+        Coordinate 3.
+
+    Returns
+    -------
+    float
+        Division result.
+
+    """
+
+    return (v1 - v2) / (v3 - v2) if v3 != v2 else v1
 
 
 def _ras2vox(vtx, vol_in):
-    """
-    https://neurostars.org/t/get-voxel-to-ras-transformation-from-nifti-file/4549
+    """Transforms a vertex array from tksurfer RAS coordinates to voxel
+    coordinates based on a reference nifti volume. The code is based on [1]_.
+
+    Parameters
+    ----------
+    vtx : ndarray, shape (N, 3)
+        Vertex array in tksurfer space.
+    vol_in : str
+        Reference nifti volume.
+
+    Returns
+    -------
+    ndarray, shape (N, 3)
+        Vertex array in voxel space.
+
+    References
+    ----------
+    .. [1] https://neurostars.org/t/get-voxel-to-ras-transformation-from-nifti-file/4549
     """
 
     nii = nb.load(vol_in)
@@ -168,4 +217,4 @@ def _ras2vox(vtx, vol_in):
     vox2ras_tkr = mgh.header.get_vox2ras_tkr()
     ras2vox_tkr = np.linalg.inv(vox2ras_tkr)
 
-    return apply_affine(ras2vox_tkr, vtx)  # vox2ras_tkr
+    return apply_affine(ras2vox_tkr, vtx)

@@ -116,7 +116,7 @@ def load_data(file_in):
 
     Returns
     -------
-    coords : ndarray, shape (N, M)
+    data : ndarray, shape (N, M)
         Data array.
 
     """
