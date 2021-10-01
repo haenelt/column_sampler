@@ -9,7 +9,7 @@ from scipy.signal import find_peaks
 from networkx.algorithms.shortest_paths.generic import shortest_path
 from column_filter import mesh
 from column_filter.io import save_overlay
-from util import sample_data
+from util import sample_data, flatten_array, unflatten_array
 
 __all__ = ["PlanarMesh", "CurvedMesh"]
 
@@ -125,7 +125,7 @@ class PlanarMesh(mesh.Mesh):
         return pts
 
     def shift_coordinates(self, file_vol, file_deform):
-        data = sample_data(self.line_coordinates, file_vol, file_deform)
+        data = self._sample_data(file_vol, file_deform)
         self._plot_data(file_vol, file_deform)
         for i, bla in enumerate(data):
             shift = self._get_shift(bla)
@@ -145,12 +145,17 @@ class PlanarMesh(mesh.Mesh):
 
     def _plot_data(self, file_vol, file_deform):
         fig, ax = plt.subplots(figsize=(5, 5))
-        b = sample_data(self.line_coordinates, file_vol, file_deform)
+        b = self._sample_data(file_vol, file_deform)
         for i in range(len(b)):
             ax.plot(self.x, b[i])
         ax.set_xlabel("x in mm")
         ax.set_ylabel("fMRI contrast")
         plt.show()
+
+    def _sample_data(self, file_vol, file_deform):
+        coords_flat = flatten_array(self.line_coordinates)
+        data = sample_data(coords_flat, file_vol, file_deform)
+        return unflatten_array(data, self.line_coordinates)
 
     @property
     def _iter_edges(self):

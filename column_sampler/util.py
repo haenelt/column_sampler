@@ -5,8 +5,7 @@ import numpy as np
 import nibabel as nb
 from nibabel.affines import apply_affine
 
-__all__ = ["make_template", "sample_line", "sample_data", "flatten_array",
-           "unflatten_array"]
+__all__ = ["make_template", "sample_data", "flatten_array", "unflatten_array"]
 
 
 def make_template(arr, threshold=1.7):
@@ -44,61 +43,91 @@ def make_template(arr, threshold=1.7):
     return mask
 
 
-def sample_line(vtx, vol_in, deform_in):
-    """
-    This function samples data onto the given coordinate array using linear
-    interpolation.
-    Inputs:
-        *vtx: vertex coordinates in voxel space.
-        *file_data: filename of nifti volume.
-        *data_array: array with data points of nifti volume.
-    Outputs:
-        *res: array with sampled data.
+def sample_data(vtx, vol_in, deform_in):
+    """Samples volume data for a given array of vertex points using linear
+    interpolation. Vertices are expected to be in tksurfer RAS space.
+
+    Parameters
+    ----------
+    vtx : np.ndarray, shape=(N, 3)
+        Vertex array in tksurfer RAS space.
+    vol_in : str
+        Reference image (nifti volume).
+    deform_in : str, optional
+        Deformation field (4D nifti volume).
+
+    Returns
+    -------
+    np.ndarray, shape=(N,)
+        Sampled data.
 
     """
 
-    vtx = _ras2vox(vtx, vol_in)
     arr = nb.load(vol_in).get_fdata()
-    vtx_new = np.zeros_like(vtx)
-    if deform_in is not None:
-        arr_cmap = nb.load(deform_in).get_fdata()
+
+    # transform to voxel space
+    vtx = _ras2vox(vtx, vol_in)
+
+    # apply deformation
+    vtx_trans = np.zeros_like(vtx)
+    if deform_in:
+        arr_deform = nb.load(deform_in).get_fdata()
         for i in range(3):
-            vtx_new[:, i] = _linear_interpolation3d(vtx[:, 0],
-                                                    vtx[:, 1],
-                                                    vtx[:, 2],
-                                                    arr_cmap[:, :, :, i])
-        vtx = vtx_new.copy()
+            vtx_trans[:, i] = _linear_interpolation3d(vtx[:, 0],
+                                                      vtx[:, 1],
+                                                      vtx[:, 2],
+                                                      arr_deform[:, :, :, i])
+        vtx = vtx_trans.copy()
 
-    # sample data
-    res = _linear_interpolation3d(vtx[:, 0], vtx[:, 1], vtx[:, 2], arr)
-
-    return res
-
-
-def sample_data(coords, file_vol, file_deform):
-    data = []
-    for i in range(len(coords)):
-        tmp = sample_line(coords[i], file_vol, file_deform)
-        data.append(tmp)
-
-    return data
+    return _linear_interpolation3d(vtx[:, 0], vtx[:, 1], vtx[:, 2], arr)
 
 
 def flatten_array(pts):
+    """Flattens a coordinate array of shape (N, M, 3) => (N*M, 3) or data array
+    of shape (N, M) => (N*M,).
+
+    Parameters
+    ----------
+    pts : np.ndarray, shape=(N, M, 3) or shape=(N, M)
+        Coordinate array or data array.
+
+    Returns
+    -------
+    np.ndarray, shape=(N*M, 3) or shape=(N*M,)
+        Flattened coordinate array or data array.
+
+    """
+
     pts = np.array(pts)
     dim1, dim2 = np.shape(pts)[:2]
-    if np.shape(pts)[2] == 3 and len(np.shape(pts)) > 2:
+    if np.shape(pts)[2] == 3 and len(np.shape(pts)) == 3:
         return np.reshape(pts, (dim1 * dim2, 3))
     else:
         return np.reshape(pts, (dim1 * dim2))
 
 
 def unflatten_array(pts, pts_ref):
+    """Unflattens a coordinate array of shape (N*M, 3) => (N, M, 3) or data
+    array of shape (N*M,) => (N, M).
+
+    Parameters
+    ----------
+    pts : np.ndarray, shape=(N*M, 3) or shape=(N*M,)
+        Flattened coordinate array or data array.
+    pts_ref : np.ndarray, shape=(N, M, ...)
+        Reference array.
+
+    Returns
+    -------
+    np.ndarray, shape=(N, M, 3) or shape=(N, M)
+        Unflattened coordinate array or data array.
+
+    """
+
     pts = np.array(pts)
     pts_ref = np.array(pts_ref)
     dim1, dim2 = np.shape(pts_ref)[:2]
-
-    if np.shape(pts)[-1] == 3 and len(np.shape(pts)) > 1:
+    if np.shape(pts)[-1] == 3 and len(np.shape(pts)) == 2:
         return np.reshape(pts, (dim1, dim2, 3))
     else:
         return np.reshape(pts, (dim1, dim2))
