@@ -9,7 +9,9 @@ __all__ = ["Layer"]
 
 
 class Layer:
-    """Definition of equi-distance layers between white and pial surface for an
+    """Layer computation.
+
+    Definition of equi-distance layers between white and pial surface for an
     array of 3D coordinate.
 
     Parameters

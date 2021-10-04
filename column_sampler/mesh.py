@@ -18,31 +18,41 @@ class PlanarMesh(mesh.Mesh):
     ## noinspection PyUnresolvedReferences
     """Mesh with planar shape.
 
-    Bla...
+    Defines a planar mesh based on a list of vertex indices. Vertex indices from
+    the list are connected to a line by their shortest path. Lines orthogonal to
+    the resulting line are then computed which are centered on the vertex line.
+    Optionally, line centers can be shifted based on a separate contrast file.
 
     Parameters
     ----------
-    vtx : (N,3) np.ndarray
-        Base directory of subject folders.
-    fac : (M,3) np.ndarray
-        sdf.
+    vtx : np.ndarray, shape=(N, 3)
+        Vertex array.
+    fac : np.ndarray, shape=(M, 3)
+        Corresponding face array.
     idx : (O) list
-        sdf.
+        List of vertex indices.
 
     Attributes
     ----------
     LINE_LENGTH : int
-        bla.
+        Line length of orthogonal lines from the middle point, i.e., the whole
+        line is twice as long.
     LINE_STEP : float
-        must be chosen so that the coordinates length is odd.
+        Step size between neighboring line coordinates. The step size must be
+        chosen so that the line array length is odd.
+    NSMOOTH : int
+        Number of neighboring line indices used for computation of line normals.
+    x : np.ndarray, shape=(N,)
+        Resulting line coordinates.
 
     Raises
     ------
-    FileNotFoundError :
-        If `dir_base` is not found or if not all subfolders in the subject
-        folder are found.
     ValueError :
-        If `sub` deviates from the names on my google drive.
+        If `vtx` has an invalid shape.
+    ValueError :
+        If `fac` has an invalid shape or does not match the vertex array `vtx`.
+    ValueError :
+        If `idx` is not a one-dimensional list.
 
     """
 
