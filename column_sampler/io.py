@@ -31,6 +31,7 @@ def read_anchor(file_in):
     res : dict
         Dictionary containing a list of indices for each row found in the text
         file. Row numbers are used as keys.
+
     """
 
     if not os.path.isfile(file_in):

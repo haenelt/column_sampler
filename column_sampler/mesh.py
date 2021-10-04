@@ -72,9 +72,21 @@ class PlanarMesh(mesh.Mesh):
     @property
     @functools.lru_cache
     def path_dijkstra(self):
+        """Returns a list of vertex indices containing the path which connects
+        input vertex indices using the Dijkstra algorithm. The code is based on
+        [1]_.
+
+        Returns
+        -------
+        path : list
+            Vertex indices forming a path on the input surface mesh.
+
+        References
+        ----------
+        .. [1] https://gallantlab.github.io/pycortex/_modules/cortex/freesurfer.html
+
         """
-        https://gallantlab.github.io/pycortex/_modules/cortex/freesurfer.html
-        """
+
         graph = nx.Graph()
         graph.add_weighted_edges_from(self._iter_edges)
         path = []
@@ -92,6 +104,13 @@ class PlanarMesh(mesh.Mesh):
     @property
     @functools.lru_cache
     def line_coordinates(self):
+        """
+
+        Returns
+        -------
+
+        """
+
         pts = []
         ind_len = len(self.path_dijkstra)
         normal = self.vertex_normals  # surface normals

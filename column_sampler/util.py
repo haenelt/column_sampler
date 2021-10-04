@@ -152,6 +152,7 @@ def _linear_interpolation3d(x, y, z, vol):
     -------
     c : np.ndarray, shape=(N,)
         Interpolated values for (x, y, z) coordinates.
+
     """
 
     # corner points
@@ -238,6 +239,7 @@ def _ras2vox(vtx, vol_in):
     References
     ----------
     .. [1] https://neurostars.org/t/get-voxel-to-ras-transformation-from-nifti-file/4549
+
     """
 
     nii = nb.load(vol_in)
