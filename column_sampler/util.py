@@ -5,107 +5,153 @@ import numpy as np
 import nibabel as nb
 from nibabel.affines import apply_affine
 
-__all__ = ["make_template", "sample_line", "sample_data", "flatten_array",
-           "unflatten_array"]
+__all__ = ["make_template", "sample_data", "flatten_array", "unflatten_array"]
 
 
 def make_template(arr, threshold=1.7):
+    """Get a mask from a set of contrast arrays. A two-dimensional array
+    containing individual contrast arrays in separate column is used as input. A
+    mask is created by excluding all data points which are below threshold in at
+    least one contrast array (column). Finally, all data points are excluded
+    which have inconsistent signs between contrasts (columns).
+
+    Parameters
+    ----------
+    arr : np.ndarray, shape=(N, M)
+        Contrast array.
+    threshold : float, optional
+        Threshold value.
+
+    Returns
+    -------
+    mask : np.ndarray, shape=(N,)
+        Mask array.
+
     """
-    *input list of arrays
-    *for each array nan values below threshold
-    *for all arrays nan values which have inconsistent signs
-    """
+
     nrows, ncols = np.shape(arr)
-    res = np.ones(nrows)
+    mask = np.ones(nrows)
 
     if threshold:
         for i in range(ncols):
-            res[arr[:, i] < threshold] = 0
+            mask[arr[:, i] < threshold] = 0
 
     for i in range(ncols):
         tmp = np.sign(arr[:, 0]) * np.sign(arr[:, i])
-        res[tmp != 1] = 0
+        mask[tmp != 1] = 0
 
-    return res
+    return mask
 
 
-def sample_line(vtx, vol_in, deform_in):
+def sample_data(vtx, vol_in, deform_in):
+    """Samples volume data for a given array of vertex points using linear
+    interpolation. Vertices are expected to be in tksurfer RAS space.
+
+    Parameters
+    ----------
+    vtx : np.ndarray, shape=(N, 3)
+        Vertex array in tksurfer RAS space.
+    vol_in : str
+        Reference image (nifti volume).
+    deform_in : str, optional
+        Deformation field (4D nifti volume).
+
+    Returns
+    -------
+    np.ndarray, shape=(N,)
+        Sampled data.
+
     """
-    This function samples data onto the given coordinate array using linear
-    interpolation.
-    Inputs:
-        *vtx: vertex coordinates in voxel space.
-        *file_data: filename of nifti volume.
-        *data_array: array with data points of nifti volume.
-    Outputs:
-        *res: array with sampled data.
 
-    """
-
-    vtx = _ras2vox(vtx, vol_in)
     arr = nb.load(vol_in).get_fdata()
-    vtx_new = np.zeros_like(vtx)
-    if deform_in is not None:
-        arr_cmap = nb.load(deform_in).get_fdata()
+
+    # transform to voxel space
+    vtx = _ras2vox(vtx, vol_in)
+
+    # apply deformation
+    vtx_trans = np.zeros_like(vtx)
+    if deform_in:
+        arr_deform = nb.load(deform_in).get_fdata()
         for i in range(3):
-            vtx_new[:, i] = _linear_interpolation3d(vtx[:, 0],
-                                                    vtx[:, 1],
-                                                    vtx[:, 2],
-                                                    arr_cmap[:, :, :, i])
-        vtx = vtx_new.copy()
+            vtx_trans[:, i] = _linear_interpolation3d(vtx[:, 0],
+                                                      vtx[:, 1],
+                                                      vtx[:, 2],
+                                                      arr_deform[:, :, :, i])
+        vtx = vtx_trans.copy()
 
-    # sample data
-    res = _linear_interpolation3d(vtx[:, 0], vtx[:, 1], vtx[:, 2], arr)
-
-    return res
-
-
-def sample_data(coords, file_vol, file_deform):
-    data = []
-    for i in range(len(coords)):
-        tmp = sample_line(coords[i], file_vol, file_deform)
-        data.append(tmp)
-
-    return data
+    return _linear_interpolation3d(vtx[:, 0], vtx[:, 1], vtx[:, 2], arr)
 
 
 def flatten_array(pts):
+    """Flattens a coordinate array of shape (N, M, 3) => (N*M, 3) or data array
+    of shape (N, M) => (N*M,).
+
+    Parameters
+    ----------
+    pts : np.ndarray, shape=(N, M, 3) or shape=(N, M)
+        Coordinate array or data array.
+
+    Returns
+    -------
+    np.ndarray, shape=(N*M, 3) or shape=(N*M,)
+        Flattened coordinate array or data array.
+
+    """
+
     pts = np.array(pts)
     dim1, dim2 = np.shape(pts)[:2]
-    if np.shape(pts)[-1] == 3 and len(np.shape(pts)) > 2:
+    if np.shape(pts)[2] == 3 and len(np.shape(pts)) == 3:
         return np.reshape(pts, (dim1 * dim2, 3))
     else:
         return np.reshape(pts, (dim1 * dim2))
 
 
 def unflatten_array(pts, pts_ref):
+    """Unflattens a coordinate array of shape (N*M, 3) => (N, M, 3) or data
+    array of shape (N*M,) => (N, M).
+
+    Parameters
+    ----------
+    pts : np.ndarray, shape=(N*M, 3) or shape=(N*M,)
+        Flattened coordinate array or data array.
+    pts_ref : np.ndarray, shape=(N, M, ...)
+        Reference array.
+
+    Returns
+    -------
+    np.ndarray, shape=(N, M, 3) or shape=(N, M)
+        Unflattened coordinate array or data array.
+
+    """
+
     pts = np.array(pts)
     pts_ref = np.array(pts_ref)
     dim1, dim2 = np.shape(pts_ref)[:2]
-    print(np.shape(pts))
-    if np.shape(pts)[-1] == 3 and len(np.shape(pts)) > 1:
+    if np.shape(pts)[-1] == 3 and len(np.shape(pts)) == 2:
         return np.reshape(pts, (dim1, dim2, 3))
     else:
         return np.reshape(pts, (dim1, dim2))
 
 
-def _linear_interpolation3d(x, y, z, arr_c):
-    """Apply a linear interpolation of values in a 3D volume to an array of
+def _linear_interpolation3d(x, y, z, vol):
+    """Apply a linear interpolation of values in a 3D array to an array of
     coordinates.
+
     Parameters
     ----------
-    x : (N,) np.ndarray
+    x : np.ndarray, shape=(N,)
         x-coordinates in voxel space.
-    y : (N,) np.ndarray
+    y : np.ndarray, shape=(N,)
         y-coordinates in voxel space.
-    z : (N,) np.ndarray
+    z : np.ndarray, shape=(N,)
         z-coordinates in voxel space.
-    arr_c : (U,V,W) np.ndarray
+    vol : np.ndarray, shape=(U, V, W)
         3D array with input values.
+
     Returns
     -------
-    c : (N,) np.ndarray
-        Interpolated values for [x,y,z].
+    c : np.ndarray, shape=(N,)
+        Interpolated values for (x, y, z) coordinates.
     """
 
     # corner points
@@ -126,14 +172,14 @@ def _linear_interpolation3d(x, y, z, arr_c):
     zd = np.asarray(zd)
 
     # corner values
-    c000 = arr_c[x0, y0, z0]
-    c001 = arr_c[x0, y0, z1]
-    c010 = arr_c[x0, y1, z0]
-    c011 = arr_c[x0, y1, z1]
-    c100 = arr_c[x1, y0, z0]
-    c101 = arr_c[x1, y0, z1]
-    c110 = arr_c[x1, y1, z0]
-    c111 = arr_c[x1, y1, z1]
+    c000 = vol[x0, y0, z0]
+    c001 = vol[x0, y0, z1]
+    c010 = vol[x0, y1, z0]
+    c011 = vol[x0, y1, z1]
+    c100 = vol[x1, y0, z0]
+    c101 = vol[x1, y0, z1]
+    c110 = vol[x1, y1, z0]
+    c111 = vol[x1, y1, z1]
 
     # interpolation along x-axis
     c00 = c000 * (1 - xd) + c100 * xd
@@ -151,15 +197,47 @@ def _linear_interpolation3d(x, y, z, arr_c):
     return c
 
 
-def _careful_divide(v, v0, v1):
-    """Only divide if v0 and v1 are different from each other."""
+def _careful_divide(v1, v2, v3):
+    """Only divide if v2 and v3 are different from each other.
 
-    return (v - v0) / (v1 - v0) if v1 != v0 else v
+    Parameters
+    ----------
+    v1 : float
+        Coordinate 1.
+    v2 : float
+        Coordinate 2.
+    v3 : float
+        Coordinate 3.
+
+    Returns
+    -------
+    float
+        Division result.
+
+    """
+
+    return (v1 - v2) / (v3 - v2) if v3 != v2 else v1
 
 
 def _ras2vox(vtx, vol_in):
-    """
-    https://neurostars.org/t/get-voxel-to-ras-transformation-from-nifti-file/4549
+    """Transforms a vertex array from tksurfer RAS coordinates to voxel
+    coordinates based on a reference nifti volume. The code is based on [1]_.
+
+    Parameters
+    ----------
+    vtx : np.ndarray, shape=(N, 3)
+        Vertex array in tksurfer space.
+    vol_in : str
+        Reference nifti volume.
+
+    Returns
+    -------
+    np.ndarray, shape=(N, 3)
+        Vertex array in voxel space.
+
+    References
+    ----------
+    .. [1] https://neurostars.org/t/get-voxel-to-ras-transformation-from-nifti-file/4549
     """
 
     nii = nb.load(vol_in)
@@ -168,4 +246,4 @@ def _ras2vox(vtx, vol_in):
     vox2ras_tkr = mgh.header.get_vox2ras_tkr()
     ras2vox_tkr = np.linalg.inv(vox2ras_tkr)
 
-    return apply_affine(ras2vox_tkr, vtx)  # vox2ras_tkr
+    return apply_affine(ras2vox_tkr, vtx)

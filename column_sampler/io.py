@@ -8,7 +8,7 @@ from column_filter.io import save_overlay
 from util import flatten_array
 
 __all__ = ["read_anchor", "load_coords", "load_data", "save_coords",
-           "save_meshlines", "save_data", "coords_to_mesh", "data_to_overlay"]
+           "save_data", "save_meshlines", "coords_to_mesh", "data_to_overlay"]
 
 
 def read_anchor(file_in):
@@ -64,12 +64,13 @@ def load_coords(file_in):
     ValueError
         If the loaded array does not contain the key `pts`.
     ValueError
-        If `file_in` contains a numpy array with wrong shape. The last array
-        dimension must have length 3 to ensure that 3D coordinates are loaded.
+        If `file_in` contains a numpy array with wrong shape. The array must
+        have 3 dimensions with a length of 3 for the last dimension (to ensure
+        that 3D coordinates are loaded).
 
     Returns
     -------
-    coords : (N, ..., 3) np.ndarray
+    coords : np.ndarray, shape=(N, M, 3)
         Array of 3D coordinates.
 
     """
@@ -83,10 +84,11 @@ def load_coords(file_in):
     file = np.load(file_in)
     try:
         coords = file["pts"]
-        if not np.shape(coords)[-1] == 3:
+        if np.shape(coords)[-1] != 3 or len(np.shape(coords)) != 3:
             raise ValueError("Coordinates have wrong shape!")
     except ValueError:
         print("Loaded file does not contain the following key: pts.")
+        raise
 
     return coords
 
@@ -108,10 +110,13 @@ def load_data(file_in):
         If `file_in` has the wrong file extension.
     ValueError
         If the loaded array does not contain the key `data`.
+    ValueError
+        If `file_in` contains a numpy array with wrong shape. The array must
+        have 2 dimensions.
 
     Returns
     -------
-    coords : (N, ...) np.ndarray
+    data : np.ndarray, shape=(N, M)
         Data array.
 
     """
@@ -119,14 +124,17 @@ def load_data(file_in):
     if not os.path.isfile(file_in):
         raise FileNotFoundError("File not found!")
 
-    if not file_in.endswidth(".npz"):
+    if not file_in.endswith(".npz"):
         raise ValueError("File has wrong format!")
 
     file = np.load(file_in)
     try:
         data = file["data"]
+        if len(np.shape(data)) != 2:
+            raise ValueError("Data array has wrong shape!")
     except ValueError:
         print("Loaded file does not contain the following key: data.")
+        raise
 
     return data
 
@@ -139,16 +147,17 @@ def save_coords(file_out, coords):
     ----------
     file_out : str
         File name of output file.
-    coords : (N, ..., 3) np.ndarray
+    coords : np.ndarray, shape=(N, M, 3)
         Array of 3D coordinates.
 
     Raises
     ------
     ValueError
-        If `file_in` has the wrong file extension.
+        If `file_out` has the wrong file extension.
     ValueError
-        If `coords` has a wrong shape. The last array dimension must have length
-        3 to ensure that 3D coordinates are saved.
+        If `coords` has a wrong shape. The array must have 3 dimensions with a
+        length of 3 for the last dimension (to ensure that 3D coordinates are
+        saved).
 
     Returns
     -------
@@ -156,30 +165,64 @@ def save_coords(file_out, coords):
 
     """
 
-    if not file_out.endswidth(".npz"):
+    if not file_out.endswith(".npz"):
         raise ValueError("File has wrong format!")
 
-    if not np.shape(coords)[-1] == 3:
+    if np.shape(coords)[2] != 3 or len(np.shape(coords)) != 3:
         raise ValueError("Coordinates have wrong shape!")
 
     np.savez(file_out, pts=coords)
 
 
-def save_meshlines(file_out, v1, v2):
-    """
-
-    This function returns a vertex and a corresponding face array to visualize
-    point-to-point connections between two congruent surface meshs.
+def save_data(file_out, data):
+    """Saves a data array as .npz file. The array is stored with key `data`.
 
     Parameters
     ----------
     file_out : str
         File name of output file.
-    v1
-    v2
+    data : np.ndarray, shape=(N, M)
+        Data array.
+
+    Raises
+    ------
+    ValueError
+        If `file_out` has the wrong file extension.
+    ValueError
+        If `data` has a wrong shape. The array must have 2 dimensions.
 
     Returns
     -------
+    None.
+
+    """
+
+    if not file_out.endswith(".npz"):
+        raise ValueError("File has wrong format!")
+
+    if len(np.shape(data)) != 2:
+        raise ValueError("Data array has wrong shape!")
+
+    np.savez(file_out, data=data)
+
+
+def save_meshlines(file_out, vtx1, vtx2):
+    """Generates meshlines between two congruent vertex arrays and saves as
+    freesurfer geometry. This visualizes point-to-point connections between both
+    arrays.
+
+    Parameters
+    ----------
+    file_out : str
+        File name of output file.
+    vtx1 : np.ndarray, shape=(N, 3)
+        First vertex array.
+    vtx2 : np.ndarray, shape=(N, 3)
+        Second vertex array.
+
+    Returns
+    -------
+    None.
 
     """
 
@@ -188,7 +231,7 @@ def save_meshlines(file_out, v1, v2):
 
     vtx_res = []
     fac_res = []
-    for i, j in zip(v1, v2):
+    for i, j in zip(vtx1, vtx2):
         vtx_res.extend([list(i), list(j)])
         fac_res.extend(fac)
         fac[0] = [x + 2 for x in fac[0]]
@@ -196,35 +239,81 @@ def save_meshlines(file_out, v1, v2):
     write_geometry(file_out, vtx_res, fac_res)
 
 
-def save_data(file_out, data):
-    if not file_out.endswidth(".npz"):
-        raise ValueError("File has wrong format!")
-
-    return np.savez(file_out, data=data)
-
-
 def coords_to_mesh(file_out, coords):
-    second_dim = np.shape(coords)[1]
-    yyy = flatten_array(coords)
-    faces = []
-    counter1 = 0
+    """Generates a mesh from an array of 3D coordinates and saves as freesurfer
+    geometry.
+
+    Parameters
+    ----------
+    file_out : str
+        File name of output file.
+    coords : np.ndarray, shape=(N, M, 3)
+        Array of 3D coordinates.
+
+    Raises
+    ------
+    ValueError
+        If `coords` has a wrong shape. The array must have 3 dimensions with a
+        length of 3 for the last dimension (to ensure that 3D coordinates are
+        used).
+
+    Returns
+    -------
+    None.
+
+    """
+
+    if np.shape(coords)[2] != 3 or len(np.shape(coords)) != 3:
+        raise ValueError("Coordinates have wrong shape!")
+
+    vtx = flatten_array(coords)
+    fac = []
+
     length = np.prod(np.shape(coords)[:2])
-    for i in range(length - second_dim):
-        if not np.mod(counter1, second_dim - 1) and counter1 != 0:
-            counter1 = 0
+    dim2 = np.shape(coords)[1]
+    counter = 0
+    for i in range(length - dim2):
+        if not np.mod(counter, dim2 - 1) and counter != 0:
+            counter = 0
             continue
         else:
-            counter1 += 1
+            counter += 1
 
-            faces.append([i, i + 1, i + second_dim])
-            faces.append([i + second_dim + 1, i + second_dim, i + 1])
-    faces = np.array(faces)
-    write_geometry(file_out, yyy, faces)
+            fac.append([i, i + 1, i + dim2])
+            fac.append([i + dim2 + 1, i + dim2, i + 1])
+
+    fac = np.array(fac)
+    write_geometry(file_out, vtx, fac)
 
 
 def data_to_overlay(file_out, data):
-    if not file_out.endswidth(".mgh"):
+    """Generates an overlay from a data array and saves as .mgh file.
+
+    Parameters
+    ----------
+    file_out : str
+        File name of output file.
+    data : np.ndarray, shape=(N, M)
+        Data array.
+
+    Raises
+    ------
+    ValueError
+        If `file_out` has the wrong file extension.
+    ValueError
+        If `data` has a wrong shape. The array must have 2 dimensions.
+
+    Returns
+    -------
+    None.
+
+    """
+
+    if not file_out.endswith(".mgh"):
         raise ValueError("File has wrong format!")
+
+    if len(np.shape(data)) != 2:
+        raise ValueError("Data array has wrong shape!")
 
     out = flatten_array(data)
     save_overlay(file_out, out)

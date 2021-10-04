@@ -34,7 +34,7 @@ class Layer:
 
         arr = np.sqrt(arr)
         ind_fac = np.argmin(arr, axis=1)
-        ind_fac = unflatten_array(ind_fac, self.coords[:, :, 0])
+        ind_fac = unflatten_array(ind_fac, self.coords)
 
         return ind_fac
 
