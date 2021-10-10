@@ -160,9 +160,9 @@ class Layer:
         t : float
             Line position for which coordinates are computed.
         pts1 : np.ndarray, shape=(3,)
-            First line point.
+            Coordinates of first line point.
         pts2 : np.ndarray, shape=(3,)
-            Second line point.
+            Coordinate of second line point.
 
         Returns
         -------

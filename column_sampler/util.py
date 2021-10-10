@@ -43,7 +43,7 @@ def make_template(arr, threshold=1.7):
     return mask
 
 
-def sample_data(vtx, vol_in, deform_in):
+def sample_data(vtx, vol_in, deform_in=None):
     """Samples volume data for a given array of vertex points using linear
     interpolation. Vertices are expected to be in tksurfer RAS space.
 

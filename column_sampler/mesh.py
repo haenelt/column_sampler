@@ -15,7 +15,6 @@ __all__ = ["PlanarMesh", "CurvedMesh"]
 
 
 class PlanarMesh(mesh.Mesh):
-    ## noinspection PyUnresolvedReferences
     """Mesh with planar shape.
 
     Defines a planar mesh based on a list of vertex indices. Vertex indices from
@@ -29,7 +28,7 @@ class PlanarMesh(mesh.Mesh):
         Vertex array.
     fac : np.ndarray, shape=(M, 3)
         Corresponding face array.
-    idx : (O) list
+    idx : list
         List of vertex indices.
 
     Attributes
@@ -104,10 +103,13 @@ class PlanarMesh(mesh.Mesh):
     @property
     @functools.lru_cache
     def line_coordinates(self):
-        """
+        """Computes line coordinates perpendicular to a line on a surface mesh.
+        The resulting array consists of N lines with M 3D coordinates.
 
         Returns
         -------
+        np.ndarray, shape=(N, M, 3)
+            Coordinate array of lines.
 
         """
 
@@ -151,13 +153,32 @@ class PlanarMesh(mesh.Mesh):
             # append coordinates of perpendicular line
             pts.append(self._line_equation(self.x, p0, p2))
 
-        return pts
+        return np.array(pts)
 
-    def shift_coordinates(self, file_vol, file_deform):
+    def shift_coordinates(self, file_vol, file_deform=None):
+        """Shifts line coordinates by centering midpoints to a reference image.
+        Distributions of sampled data along lines are plotted before and after
+        shifting for sanity check.
+
+        Parameters
+        ----------
+        file_vol : str
+            Reference image (nifti volume).
+        file_deform : str, optional
+            Deformation field (4D nifti volume).
+
+        Returns
+        -------
+        np.ndarray, shape=(N, M, 3)
+            Shifted coordinate array of lines.
+
+
+        """
+
         data = self._sample_data(file_vol, file_deform)
         self._plot_data(file_vol, file_deform)
-        for i, bla in enumerate(data):
-            shift = self._get_shift(bla)
+        for i, y in enumerate(data):
+            shift = self._get_shift(y)
             xc = int(len(self.x) / 2)  # old center coordinate
             xc = xc + shift  # new center coordinate
             pt1 = self.line_coordinates[i][xc, :]
@@ -168,26 +189,78 @@ class PlanarMesh(mesh.Mesh):
         return self.line_coordinates
 
     def save_line(self, file_out):
+        """Saves Dijkstra's shortest path as MGH overlay.
+
+        Parameters
+        ----------
+        file_out : str
+            File name of output file.
+
+        Returns
+        -------
+        None.
+
+        """
+
         out = np.zeros(len(self.vtx))
         out[self.path_dijkstra] = 1
         save_overlay(file_out, out)
 
-    def _plot_data(self, file_vol, file_deform):
+    def _plot_data(self, file_vol, file_deform=None):
+        """Plot distribution of sampled data.
+
+        Parameters
+        ----------
+        file_vol : str
+            Reference image (nifti volume).
+        file_deform : str, optional
+            Deformation field (4D nifti volume).
+
+        Returns
+        -------
+        None.
+
+        """
+
         fig, ax = plt.subplots(figsize=(5, 5))
-        b = self._sample_data(file_vol, file_deform)
-        for i in range(len(b)):
-            ax.plot(self.x, b[i])
+        data = self._sample_data(file_vol, file_deform)
+        for y in data:
+            ax.plot(self.x, y)
         ax.set_xlabel("x in mm")
         ax.set_ylabel("fMRI contrast")
         plt.show()
 
-    def _sample_data(self, file_vol, file_deform):
+    def _sample_data(self, file_vol, file_deform=None):
+        """Sample data from reference volume.
+
+        Parameters
+        ----------
+        file_vol : str
+            Reference image (nifti volume).
+        file_deform : str, optional
+            Deformation field (4D nifti volume).
+
+        Returns
+        -------
+        np.ndarray, shape=(N, M)
+            Unflattened data array.
+
+        """
+
         coords_flat = flatten_array(self.line_coordinates)
         data = sample_data(coords_flat, file_vol, file_deform)
         return unflatten_array(data, self.line_coordinates)
 
     @property
     def _iter_edges(self):
+        """Creates iterators for mesh edges with associated Euclidean distances.
+
+        Returns
+        -------
+        None.
+
+        """
+
         for a, b, c in self.fac:
             yield a, b, self._euclidean_distance(self.vtx[a], self.vtx[b])
             yield b, c, self._euclidean_distance(self.vtx[b], self.vtx[c])
@@ -195,6 +268,21 @@ class PlanarMesh(mesh.Mesh):
 
     @staticmethod
     def _get_shift(data):
+        """Finds the peak of a data array and returns the distance to its center
+        position. The center position is the midpoint of the array.
+
+        Parameters
+        ----------
+        data : np.ndarray, shape=(N,)
+            One-dimensional data array.
+
+        Returns
+        -------
+        data_shift : float
+            Distance to center position.
+
+        """
+
         xc = int(len(data) / 2)  # center coordinate
         peaks, _ = find_peaks(data)  # line peaks
 
@@ -213,10 +301,46 @@ class PlanarMesh(mesh.Mesh):
 
     @staticmethod
     def _euclidean_distance(pt1, pt2):
+        """Computes Euclidean distance between two points.
+
+        Parameters
+        ----------
+        pt1 : np.ndarray, shape=(3,)
+            Coordinates of first point.
+        pt2 : np.ndarray, shape=(3,)
+            Coordinates of second  point.
+
+        Returns
+        -------
+        float
+            Euclidean distance.
+
+        """
+
         return np.linalg.norm(pt2 - pt1)
 
     @staticmethod
     def _line_equation(x, a, b):
+        """Computes line coordinates of a line defined by two points for a list
+        of line positions.
+
+        Parameters
+        ----------
+        x : list
+            One-dimensional list of line positions for which coordinates are
+            computed.
+        a : np.ndarray, shape=(3,)
+            Coordinates of first line point.
+        b : np.ndarray, shape=(3,)
+            Coordinates of second line point.
+
+        Returns
+        -------
+        np.ndarray, shape=(N, 3)
+            Line coordinates.
+
+        """
+
         return np.array([a + i * (b - a) / np.linalg.norm(a - b) for i in x])
 
     @property
@@ -233,6 +357,47 @@ class PlanarMesh(mesh.Mesh):
 
 
 class CurvedMesh(PlanarMesh):
+    """Mesh with curved shape.
+
+    Defines a curved mesh based on a list of vertex indices. Vertex indices from
+    the list are connected to a line by their shortest path. Lines orthogonal to
+    the resulting line are then computed which are centered on the vertex line.
+    Optionally, line centers can be shifted based on a separate contrast file.
+    Orthogonal lines are then repositioned to lie on the the surface mesh.
+
+    Parameters
+    ----------
+    vtx : np.ndarray, shape=(N, 3)
+        Vertex array.
+    fac : np.ndarray, shape=(M, 3)
+        Corresponding face array.
+    idx : list
+        List of vertex indices.
+
+    Attributes
+    ----------
+    MAX_ITER : int
+        Maximal number of iterations for line repositioning.
+    COST_THRES : float
+        Break condition for line repositioning.
+    DIST_RATIO : float
+        Target distance ratio between neighboring points.
+    REPOSITION_STEP : int
+        Number of iterations between line repositioning.
+    CHECK_STEP : int
+        Number of iterations between homogeneity checks.
+
+    Raises
+    ------
+    ValueError :
+        If `vtx` has an invalid shape.
+    ValueError :
+        If `fac` has an invalid shape or does not match the vertex array `vtx`.
+    ValueError :
+        If `idx` is not a one-dimensional list.
+
+    """
+
     MAX_ITER = 100000
     COST_THRES = 1e-4
     DIST_RATIO = 0.1
@@ -243,15 +408,44 @@ class CurvedMesh(PlanarMesh):
         super().__init__(vtx, fac, idx)
 
     def project_coordinates_sequence(self, axis=(0, 1)):
+        """Runs mesh repositioning multiple times along a sequence of axes along
+        which mesh repositioning is performed.
+
+        Parameters
+        ----------
+        axis : tuple
+            Sequence of axes.
+
+        Returns
+        -------
+        np.ndarray, shape=(N, M, 3)
+            Coordinate array of curved lines.
+
+        """
+
         for i in axis:
-            print(i)
+            print("Run projection for axis "+str(i))
             self.project_coordinates(i)
 
         return self.line_coordinates
 
     def project_coordinates(self, axis=0):
-        # pts -> lines x pts x coords
-        pts = self.line_coordinates  # type: list
+        """Runs mesh repositioning along a defined axis.
+
+        Parameters
+        ----------
+        axis : int, optional
+            Axis along repositioning is performed. Valid axis parameters are 0
+            or 1.
+
+        Returns
+        -------
+        np.ndarray, shape=(N, M, 3)
+            Coordinate array of curved lines.
+
+        """
+
+        pts = self.line_coordinates
         counter = 0
         while counter < self.MAX_ITER:
             counter += 1
@@ -293,6 +487,7 @@ class CurvedMesh(PlanarMesh):
                 for i, line in enumerate(pts):
                     pts[i] = self._reposition_mesh(line)
 
+            # check break condition
             if not np.mod(counter, self.CHECK_STEP):
                 cost = self._check_homogeneity(pts, axis=axis)
                 if cost < self.COST_THRES:
@@ -300,48 +495,89 @@ class CurvedMesh(PlanarMesh):
                         pts[i] = self._reposition_mesh(line)
                     break
 
-        return pts
+        return np.array(pts)
 
     def _reposition_mesh(self, pts):
-        # reposition in the sense of vertex shifting
-        # get closest vertex
-        # get normal
-        # for each y -> reposition with formula
-        res = []
-        for bla in pts:
-            ind_here = self._closest_point(bla)
-            n = self.vertex_normals[ind_here, :]
-            res.append(bla-np.dot(np.outer(n, n), bla-self.vtx[ind_here, :]))
+        """Performs remeshing in the sense of vertex shifting. For a coordinate,
+        the closest vertex of the surface mesh is found and the coordinate is
+        then projected along the vertex normal onto the surface mesh.
 
-        return res
+        Parameters
+        ----------
+        pts : np.ndarray, shape=(N, 3)
+            List of coordinates.
+
+        Returns
+        -------
+        np.ndarray, shape=(N, 3)
+            Repositioned list of coordinates.
+
+        """
+
+        pts_proj = []
+        for i in pts:
+            id0 = self._closest_point(i)
+            n = self.vertex_normals[id0, :]
+            pts_proj.append(i-np.dot(np.outer(n, n), i-self.vtx[id0, :]))
+
+        return np.array(pts_proj)
 
     def _closest_point(self, pt):
-        vtx_tmp = self.vtx - pt
-        dist = np.sqrt(vtx_tmp[:, 0]**2+vtx_tmp[:, 1]**2+vtx_tmp[:, 2]**2)
-        idc = np.where(dist == np.min(dist))[0][0]
+        """Finds vertex which has smallest Euclidean distance to a given point.
 
-        return idc
+        Parameters
+        ----------
+        pt : np.ndarray, shape=(3,)
+            3D coordinate.
 
-    def _check_homogeneity(self, arr, axis=0):
+        Returns
+        -------
+        int
+            Index of closest vertex.
+
+        """
+
+        v = self.vtx - pt
+        dist = np.sqrt(v[:, 0]**2+v[:, 1]**2+v[:, 2]**2)
+
+        return np.where(dist == np.min(dist))[0][0]
+
+    def _check_homogeneity(self, pts, axis=0):
+        """Checks the homogeneity of a coordinate array by computing the mean
+        ratio of distances to both neighbor points along one axis. A homogeneous
+        array should return a value close to 0.
+
+        Parameters
+        ----------
+        pts : np.ndarray, shape=(N, 3)
+            List of coordinates.
+        axis : int, optional
+            Axis along repositioning is performed. Valid axis parameters are 0
+            or 1.
+
+        Returns
+        -------
+        float
+            Distance ratio.
+
+        """
+
         dist = []
-        for i in range(1, np.shape(arr)[0]-1):
-            for j in range(1, np.shape(arr)[1]-1):
+        for i in range(1, np.shape(pts)[0] - 1):
+            for j in range(1, np.shape(pts)[1] - 1):
 
-                p = arr[i][j]
-
-                # random line point
+                p = pts[i][j]
                 if axis == 0:
-                    p_prev = arr[i - 1][j]
-                    p_next = arr[i + 1][j]
+                    p_prev = pts[i - 1][j]
+                    p_next = pts[i + 1][j]
                 elif axis == 1:
-                    p_prev = arr[i][j - 1]
-                    p_next = arr[i][j + 1]
+                    p_prev = pts[i][j - 1]
+                    p_next = pts[i][j + 1]
                 else:
                     raise ValueError("Invalid argument for axis!")
 
                 dist_prev = self._euclidean_distance(p, p_prev)
                 dist_next = self._euclidean_distance(p, p_next)
-
                 dist.append(dist_next / dist_prev)
 
         return np.abs(1 - np.mean(dist))
