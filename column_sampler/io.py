@@ -5,7 +5,7 @@ import os
 import numpy as np
 from nibabel.freesurfer.io import write_geometry
 from column_filter.io import save_overlay
-from util import flatten_array
+from .util import flatten_array
 
 __all__ = ["read_anchor", "load_coords", "load_data", "save_coords",
            "save_data", "save_meshlines", "coords_to_mesh", "data_to_overlay"]

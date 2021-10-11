@@ -3,7 +3,7 @@
 
 import functools
 import numpy as np
-from util import flatten_array, unflatten_array
+from .util import flatten_array, unflatten_array
 
 __all__ = ["Layer"]
 

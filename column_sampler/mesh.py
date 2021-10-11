@@ -9,7 +9,7 @@ from scipy.signal import find_peaks
 from networkx.algorithms.shortest_paths.generic import shortest_path
 from column_filter import mesh
 from column_filter.io import save_overlay
-from util import sample_data, flatten_array, unflatten_array
+from .util import sample_data, flatten_array, unflatten_array
 
 __all__ = ["PlanarMesh", "CurvedMesh"]
 
@@ -407,14 +407,16 @@ class CurvedMesh(PlanarMesh):
     def __init__(self, vtx, fac, idx):
         super().__init__(vtx, fac, idx)
 
-    def project_coordinates_sequence(self, axis=(0, 1)):
+    def project_coordinates_sequence(self, axis=(0, 1), anchor_midpoints=True):
         """Runs mesh repositioning multiple times along a sequence of axes along
         which mesh repositioning is performed.
 
         Parameters
         ----------
-        axis : tuple
+        axis : tuple, optional
             Sequence of axes.
+        anchor_midpoints : bool, optional
+            If True, center coordinates of lines are not moved.
 
         Returns
         -------
@@ -425,11 +427,11 @@ class CurvedMesh(PlanarMesh):
 
         for i in axis:
             print("Run projection for axis "+str(i))
-            self.project_coordinates(i)
+            self.project_coordinates(i, anchor_midpoints)
 
         return self.line_coordinates
 
-    def project_coordinates(self, axis=0):
+    def project_coordinates(self, axis=0, anchor_midpoints=True):
         """Runs mesh repositioning along a defined axis.
 
         Parameters
@@ -437,6 +439,8 @@ class CurvedMesh(PlanarMesh):
         axis : int, optional
             Axis along repositioning is performed. Valid axis parameters are 0
             or 1.
+        anchor_midpoints : bool, optional
+            If True, center coordinates of lines are not moved.
 
         Returns
         -------
@@ -469,7 +473,7 @@ class CurvedMesh(PlanarMesh):
             else:
                 raise ValueError("Invalid argument for axis!")
 
-            if y_random == pt_fix:
+            if y_random == pt_fix and anchor_midpoints:
                 continue
 
             dist_prev = self._euclidean_distance(p, p_prev)
