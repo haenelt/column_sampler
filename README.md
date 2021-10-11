@@ -1,7 +1,7 @@
 # Column sampler
 
 <p align="center">
-  <img src="https://github.com/haenelt/column_filter/blob/main/img/odc.gif?raw=true" width=75% height=75% alt="Illustration of GBB"/>
+  <img src="https://github.com/haenelt/column_sampler/blob/main/img/example.gif?raw=true" width=75% height=75% alt="Illustration of GBB"/>
 </p>
 
 Cortical columns are often thought as the fundamental building blocks for cortical information processing. Recent advances in ultrahigh field functional magnetic resonance imaging (fMRI) enabled the mapping of cortical columns in living humans. However, fMRI still suffers from various noise sources which degrades the specificity of the signal and challenges the visualization of fine-grained cortical structures.
@@ -116,7 +116,7 @@ bla = A.generate_layers(5)
 ```
 
 ## References
-<a id="1">[1]</a> de Hollander, G. D., van der Zwaag, W., Qian, C., Zhang, P. &  Knapen, T. Ultra-high field fMRI reveals origins of feedforward and feedback activity within laminae of human ocular dominance columns. *NeuroImage* **228** (2021). 
+<a id="1">[1]</a> de Hollander, G. D., van der Zwaag, W., Qian, C., Zhang, P. &  Knapen, T. Ultra-high field fMRI reveals origins of feedforward and feedback activity within laminae of human ocular dominance columns. *NeuroImage* **228** (2021).
 
 <a id="2">[2]</a> Nasr, S., Polimeni, J. R. & Tootell R. B. H. Interdigitated Color- and Disparity-Selective Columns within Human Visual Cortical Areas V2 and V3. *J. Neurosci.* **36,** 1841&ndash;1857 (2016).
 
