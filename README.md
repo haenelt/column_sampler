@@ -4,11 +4,11 @@
   <img src="https://github.com/haenelt/column_sampler/blob/main/img/example.gif?raw=true" width=75% height=75% alt="Illustration of GBB"/>
 </p>
 
-Ultrahigh field functional magnetic resonance imaging (fMRI) enables the mapping of cortical columns in living humans. However, fMRI still suffers from various noise source which challenges the interpretation of the measured fMRI signal. An accurate characterization of the BOLD point-spread function is thereby a prerequesite for better understanding of the signal.
+Ultrahigh field functional magnetic resonance imaging (fMRI) enables the mapping of cortical layers and columns in living humans. However, fMRI still suffers from various noise sources which challenges the interpretation of the measured fMRI signal. An accurate characterization of the BOLD point-spread function (PSF) is therefore a prerequisite for further understanding of the measured signal.
 
-This package provides functionality to segment out single cortical column on a surface mesh. This can be used for accurate analysis of the edge response of cortical column to study the point-spread function across cortical depth similar to [[1]](#1).
+This package provides functionality to segment out single cortical columns mapped on a surface mesh. This can be used to analyze the edge response at column borders to study the BOLD PSF across cortical depth similar to [[1]](#1).
 
-The figure above shows an example mesh which segments out one cortical column. A manually defined line is used around meshlines orthogonal to the path are computed. Data sampled onto these orthogonal lines are then used to study the edge response of cortical columns at different cortical depths.
+The figure above shows an example mesh which defines lines orthogonal to an oriented cortical columns. First, a path is manually drawn on a reference surface mesh. Then, lines are computed at different cortical depths which are oriented orthogonal to this path. Finally, functional contrasts can be sampled onto these lines to analyze the edge response around column borders at different cortical depths.
 
 ## Installation
 I recommend to use `Miniconda` to create a new python environment with `python=3.8`. To install the package, clone the repository and run the following line from the directory in which the repository was cloned
