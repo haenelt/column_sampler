@@ -237,7 +237,7 @@ def save_meshlines(file_out, vtx1, vtx2):
         fac_res.extend(fac)
         fac[0] = [x + 2 for x in fac[0]]
 
-    write_geometry(file_out, vtx_res, fac_res)
+    write_geometry(file_out, np.array(vtx_res), np.array(fac_res))
 
 
 def coords_to_mesh(file_out, coords):

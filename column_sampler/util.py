@@ -100,7 +100,7 @@ def flatten_array(pts):
 
     pts = np.array(pts)
     dim1, dim2 = np.shape(pts)[:2]
-    if np.shape(pts)[2] == 3 and len(np.shape(pts)) == 3:
+    if len(np.shape(pts)) == 3 and np.shape(pts)[2] == 3:
         return np.reshape(pts, (dim1 * dim2, 3))
     else:
         return np.reshape(pts, (dim1 * dim2))

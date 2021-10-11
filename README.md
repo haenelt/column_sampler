@@ -68,6 +68,53 @@ res = filter_bank.generate_wavelet(coords[0], coords[1], sigma, sf, 0, 0.1)
 save_overlay(file_out, np.real(res))
 ```
 
+```python
+# Mesh
+import os
+from nibabel.freesurfer.io import read_geometry
+from column_sampler.io import load_coords, save_coords, coords_to_mesh
+from column_sampler.mesh import PlanarMesh, CurvedMesh
+from column_sampler.layer import Layer
+
+surf_in = "/data/pt_01880/zzz/lh.layer_5"
+ind = [118288, 124379, 133547, 19521, 133796]
+
+line_out = ""
+plane_out = ""
+curv_out = ""
+coords_out = ""
+
+# load mesh
+v, f = read_geometry(surf_in)
+
+# save line
+plane = PlanarMesh(v, f, ind)
+plane.save_line(line_out)  # save line as overlay
+coords_to_mesh(plane_out, plane.line_coordinates)  # save plane as mesh
+
+curv = CurvedMesh(v, f, ind)
+coords = curv.project_coordinates_sequence()
+coords_to_mesh(curv_out, coords)
+save_coords(coords_out, coords)
+
+
+# layers
+file_white = "/data/pt_01880/zzz/lh.layer_0"
+file_middle = "/data/pt_01880/zzz/lh.layer_5"
+file_pial = "/data/pt_01880/zzz/lh.layer_10"
+file_coords = ""
+nlayer = 11
+
+# load vertices and faces
+v_ref, f_ref = read_geometry(file_middle)
+v_white, _ = read_geometry(file_white)
+v_pial, _ = read_geometry(file_pial)
+cords = load_coords(file_coords)
+
+A = Layer(coords, v_ref, f_ref, v_white, v_pial)
+bla = A.generate_layers(5)
+```
+
 ## References
 <a id="1">[1]</a> de Hollander, G. D., van der Zwaag, W., Qian, C., Zhang, P. &  Knapen, T. Ultra-high field fMRI reveals origins of feedforward and feedback activity within laminae of human ocular dominance columns. *NeuroImage* **228** (2021). 
 

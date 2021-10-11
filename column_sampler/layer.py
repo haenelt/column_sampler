@@ -145,8 +145,7 @@ class Layer:
         dim1, dim2 = np.shape(w)[:2]
         layer = np.zeros((n_layer, dim1, dim2, 3))
         for i in range(n_layer):
-            vtx_layer = w + i / (n_layer - 1) * (p - w)
-            layer[i, :, :, :] = vtx_layer
+            layer[i, :, :, :] = w + i / (n_layer - 1) * (p - w)
 
         return layer
 
